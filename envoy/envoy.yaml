@@ -1,0 +1,99 @@
+admin:
+  access_log_path: /var/log/admin_access.log
+  address:
+    socket_address: { address: 0.0.0.0, port_value: 9901 }
+
+static_resources:
+  listeners:
+  - name: http_proxy
+    address:
+      socket_address:
+        protocol: tcp
+        address: 0.0.0.0
+        # use port 10000 for external user asscee, while keep port 443 for internal user
+        port_value: 10000
+    filter_chains:
+    - filters:
+      - name: envoy.http_connection_manager
+        config:
+          codec_type: auto
+          stat_prefix: ingress_http
+          route_config:
+            name: local_route
+            virtual_hosts:
+            # idrac remote controller for R710
+            - name: idrac-main
+              domains: [ "idrac-main.example.com" ]
+              routes:
+              - match: { prefix: "/" }
+                route: { cluster: service.idrac, host_rewrite: 10.0.0.254 }
+            # esxi host
+            - name: esxi
+              domains: [ "esxi.example.com" ]
+              routes:
+              - match: { prefix: "/" }
+                route: { cluster: service.esxi, host_rewrite: 10.0.0.253, use_websocket: true }
+            # server and application monitoring service (grafana)
+            - name: monitor
+              domains: [ "monitor.example.com" ]
+              routes:
+              - match: { prefix: "/" }
+                route: { cluster: service.monitor, host_rewrite: 10.1.0.254 }
+          http_filters:
+          - name: envoy.router
+      tls_context:
+        common_tls_context:
+          tls_certificates:
+          - certificate_chain:
+              filename: "/etc/server.crt"
+            private_key:
+              filename: "/etc/server.key"
+  clusters:
+  # idrac remote controller for R710 (singleton)
+  - name: service.idrac
+    connect_timeout: 0.25s
+    type: static
+    lb_policy: round_robin
+    tls_context:
+      allow_renegotiation: true
+    load_assignment:
+      cluster_name: service.idrac
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 10.0.0.254
+                port_value: 443
+  # esxi host (singleton)
+  - name: service.esxi
+    connect_timeout: 0.25s
+    type: static
+    lb_policy: round_robin
+    tls_context:
+      allow_renegotiation: true
+    load_assignment:
+      cluster_name: service.esxi
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 10.0.0.253
+                port_value: 443
+  # monitor service
+  - name: service.monitor
+    connect_timeout: 0.25s
+    type: static
+    lb_policy: round_robin
+    tls_context:
+      allow_renegotiation: true
+    load_assignment:
+      cluster_name: service.monitor
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 10.0.0.200
+                port_value: 443

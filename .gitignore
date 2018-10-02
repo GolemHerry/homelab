@@ -1,0 +1,8 @@
+*.xml
+
+/kubernetes
+/nextcloud
+/prometheus
+
+/cert
+/env.sh
