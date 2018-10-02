@@ -52,7 +52,7 @@ I used a <a href="https://openwrt.org/"><code>OpenWRT</code></a> router (awesome
 
 <details>
 <summary>3. X509 Certifications for <code>https</code></summary>
-It's 2018, always use tls when talking through the Internet! I made it with the help of <a href="https://github.com/FiloSottile/mkcert"><code>mkcert</code></a>, a great tool for creating self signed certifications
+It's 2018, always use tls when talking through the Internet! I made it with the help of <a href="https://github.com/FiloSottile/mkcert"><code>mkcert</code></a>, a great tool for creating self signed certifications
 
 You have to run the following command inside the porject root directory
 <pre>
