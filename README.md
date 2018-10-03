@@ -76,8 +76,3 @@ mkdir -p cert && mv *-key.pem cert/key.pem && mv *.pem cert/cert.pem</code>
 </details>
 
 TODO: Finish steps
-
-### References
-
-- Kubernetes
-    - [kelseyhightower/Kubernetes The Hard Way](https://github.com/kelseyhightower/kubernetes-the-hard-way)

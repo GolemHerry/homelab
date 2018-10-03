@@ -1,8 +1,9 @@
 *.xml
 
-/kubernetes
-/nextcloud
-/prometheus
+
+/kube/services
 
 /cert
 /env.sh
+
+generated/
