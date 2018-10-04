@@ -3,7 +3,7 @@
 set -e
 
 _KUBE_DIR=..
-source ${_KUBE_DIR}/v-env.sh
+source ${_KUBE_DIR}/env.sh
 
 CA_DIR=${_KUBE_DIR}/cert
 CA_GEN_DIR=${_KUBE_DIR}/cert/${GEN_DIR}
@@ -12,7 +12,7 @@ gen_kube_proxy_conf() {
   CERT_CSR_CFG=${GEN_DIR}/csr-${COMP_KUBE_PROXY}.json
   cat > ${CERT_CSR_CFG} <<EOF
 {
-  "CN": "system:kube-proxy",
+  "CN": "system:${COMP_KUBE_PROXY}",
   "key": {
     "algo": "rsa",
     "size": 2048

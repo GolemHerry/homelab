@@ -2,7 +2,9 @@
 
 set -e
 
-source ../v-env.sh
+_KUBE_DIR=..
+
+source ${_KUBE_DIR}/env.sh
 
 # generate ca
 gen_ca() {

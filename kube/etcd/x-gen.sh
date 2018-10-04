@@ -4,7 +4,7 @@ set -e
 
 _KUBE_DIR=..
 
-source ${_KUBE_DIR}/v-env.sh
+source ${_KUBE_DIR}/env.sh
 
 rm -rf ${GEN_DIR}
 mkdir -p ${GEN_DIR}

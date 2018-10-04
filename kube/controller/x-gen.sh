@@ -4,7 +4,7 @@ set -e
 
 _KUBE_DIR=..
 
-source ${_KUBE_DIR}/v-env.sh
+source ${_KUBE_DIR}/env.sh
 
 CA_DIR=${_KUBE_DIR}/cert
 CA_GEN_DIR=${_KUBE_DIR}/cert/${GEN_DIR}
