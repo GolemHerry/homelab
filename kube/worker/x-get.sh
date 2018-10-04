@@ -12,6 +12,8 @@ URL_KUBE_PROXY="https://storage.googleapis.com/kubernetes-release/release/v${VER
 
 URL_KUBELET="https://storage.googleapis.com/kubernetes-release/release/v${VER_KUBE}/bin/linux/amd64/kubelet"
 
+URL_KUBECTL="https://storage.googleapis.com/kubernetes-release/release/v${VER_KUBE}/bin/linux/amd64/kubectl"
+
 URL_RUNC="https://github.com/opencontainers/runc/releases/download/v${VER_RUNC}/runc.amd64"
 
 URL_RUNSC="https://storage.googleapis.com/kubernetes-the-hard-way/runsc-50c283b9f56bb7200938d9e207355f05f79f0d17"
@@ -26,5 +28,5 @@ pushd ${DOWNLOAD_DIR}
 wget -q --show-progress --https-only --timestamping \
   "${URL_CRICTL}" "${URL_KUBE_PROXY}" "${URL_KUBELET}" \
   "${URL_RUNC}" "${URL_RUNSC}" "${URL_CONTAINERD}" \
-  "${URL_CNI_PLUGINS}"
+  "${URL_CNI_PLUGINS}" "${URL_KUBECTL}"
 popd

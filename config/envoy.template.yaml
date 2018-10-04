@@ -33,12 +33,12 @@ static_resources:
               routes:
               - match: { prefix: "/" }
                 route: { cluster: service.esxi, host_rewrite: 10.0.0.253, use_websocket: true }
-            # server and application monitoring service (grafana)
-            - name: monitor
-              domains: [ "monitor.example.com" ]
+            # kubernetes
+            - name: kube
+              domains: [ "kube.example.com" ]
               routes:
               - match: { prefix: "/" }
-                route: { cluster: service.monitor, host_rewrite: 10.1.0.254 }
+                route: { cluster: service.kube, host_rewrite: 10.0.0.254 }
           http_filters:
           - name: envoy.router
       tls_context:
@@ -81,19 +81,19 @@ static_resources:
               socket_address:
                 address: 10.0.0.253
                 port_value: 443
-  # monitor service
-  - name: service.monitor
+  # kubernetes service
+  - name: service.kube
     connect_timeout: 0.25s
     type: static
     lb_policy: round_robin
     tls_context:
       allow_renegotiation: true
     load_assignment:
-      cluster_name: service.monitor
+      cluster_name: service.kube
       endpoints:
       - lb_endpoints:
         - endpoint:
             address:
               socket_address:
                 address: 10.0.0.200
-                port_value: 443
+                port_value: 6443
