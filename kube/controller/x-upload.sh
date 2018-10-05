@@ -6,13 +6,16 @@ _KUBE_DIR=..
 
 source ${_KUBE_DIR}/env.sh
 
-upload_bin() {
-  BIN_TAR="controller-comp.tar.xz"
-  pushd ${DOWNLOAD_DIR}
-    tar Jcf ../${GEN_DIR}/${BIN_TAR} *
-  popd
+BIN_TAR="controller-comp.tar.xz"
 
-  TO_UPLOAD=${GEN_DIR}/${BIN_TAR}
+prepare_bin() {
+  pushd ${DOWNLOAD_DIR}
+    tar Jcf ../${GEN_DIR}/${BIN_TAR} ./*
+  popd
+}
+
+upload_bin() {
+  TO_UPLOAD="${GEN_DIR}/${BIN_TAR}"
   
   for i in ${!CONTROLLER_LIST[@]}
   do

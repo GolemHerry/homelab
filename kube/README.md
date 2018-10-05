@@ -13,6 +13,8 @@ __Notice:__ I will create one virtual server serving both `etcd` and `kubernetes
 
 ## How to use
 
+### First time deployment
+
 0.Copy and modify `env.sh` according to your homelab
 
 ```bash
@@ -32,17 +34,41 @@ $ ./x-helper.sh gen_all
 $ ./x-helper.sh download_all
 ```
 
-3.Upload all required files to your server
+3.Prepare files to upload to your server
+
+```bash
+$ ./x-helper.sh prepare_upload_bin_all
+```
+
+4.Upload all required files to your server
 
 ```bash
 $ ./x-helper.sh upload_all
 ```
 
-4.Deploy `Kubernetes` to your server with ssh
+5.Deploy `Kubernetes` to your server with ssh
 
 ```bash
 $ ./x-helper.sh deploy_all
 ```
+
+### Configuration Update
+
+1.Edit `env.sh` with your favourite editor
+
+2.Generate certificates and kubeconfig
+
+```bash
+$ ./x-helper.sh gen_all
+```
+
+3.Upload all configurations files to your server and deploy with `redeploy_all`
+
+```bash
+$ ./x-helper.sh redeploy_all
+```
+
+__NOTE:__ these steps will generate new `CA` and you have to change your local certs accordingly
 
 ## References
 

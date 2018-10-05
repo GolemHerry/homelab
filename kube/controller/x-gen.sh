@@ -378,24 +378,24 @@ apt-get install -y nginx
 
 # decompress components
 tar xf controller-comp.tar.xz
+tar xf etcd-v${VER_ETCD}-linux-amd64.tar.gz
 
 mkdir -p \\
   /etc/${COMP_KUBE_API_SERVER}/config \\
   /var/lib/${COMP_KUBE_API_SERVER}/ \\
   /etc/etcd
 
-# certs required by etcd
+# copy certs required by etcd
 cp ca.pem ${COMP_KUBE_API_SERVER}*.pem /etc/etcd/
 
 # Install certs
-mv ca.pem ca-key.pem \\
+mv ca*.pem \\
   ${COMP_KUBE_API_SERVER}*.pem \\
   ${COMP_KUBE_SERVICE_ACCOUNT}*.pem \\
   encryption-config.yaml \\
   /var/lib/${COMP_KUBE_API_SERVER}/
 
 # Install etcd
-tar xf etcd-v${VER_ETCD}-linux-amd64.tar.gz
 mv etcd-v${VER_ETCD}-linux-amd64/etcd* /usr/local/bin/
 
 # Install Kube Bin
@@ -420,19 +420,19 @@ ln -s /etc/nginx/sites-available/kubernetes.default.svc.cluster.local /etc/nginx
 
 systemctl daemon-reload
 systemctl enable etcd nginx kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
-systemctl start etcd kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
-systemctl restart nginx
+systemctl restart nginx etcd kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
 
 echo "waiting for kube-apiserver"
+
 sleep 30
-# RBAC Auth
+
+# Enable RBAC Auth
 kubectl apply --kubeconfig ~/admin.kubeconfig -f ~/RBAC-create.yaml
 kubectl apply --kubeconfig ~/admin.kubeconfig -f ~/RBAC-bind.yaml
 
-rm -rf \\
-  ~/RBAC-create.yaml ~/RBAC-bind.yaml ~/admin.kubeconfig \\
-  etcd-v${VER_ETCD}-linux-amd64
+rm -rf ~/RBAC-*.yaml etcd-v${VER_ETCD}-linux-amd64
 
+printf "\n\nDeploy ${CONTROLLER} Success\n"
 EOF
 
   chmod +x ${SCRIPT}

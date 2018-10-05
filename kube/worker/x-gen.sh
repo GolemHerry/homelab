@@ -269,13 +269,12 @@ EOF
   DEPLOY_SCRIPT=${GEN_DIR}/${WORKER}-deploy.sh
   cat > ${DEPLOY_SCRIPT} <<EOF
 #!/bin/bash -x
-
 set -e
 
-sudo apt-get update
-sudo apt-get -y install socat conntrack ipset
+apt-get update
+apt-get -y install socat conntrack ipset
 
-sudo mkdir -p \\
+mkdir -p \\
   /etc/cni/net.d \\
   /opt/cni/bin \\
   /var/lib/kubelet \\
@@ -284,43 +283,46 @@ sudo mkdir -p \\
   /var/run/${COMP_KUBE_API_SERVER} \\
   /etc/containerd
 
-# decompress worker components to get download
+# decompress worker components
 tar xf worker-comp.tar.xz
 
-# install bin
-sudo mv runsc* runsc
-sudo mv runc.amd64 runc
+tar xf crictl-v${VER_KUBE}-linux-amd64.tar.gz -C /usr/local/bin/
+tar xf cni-plugins-amd64-v${VER_CNI_PLUGINS}.tgz -C /opt/cni/bin/
+tar xf containerd-${VER_CONTAINERD}.linux-amd64.tar.gz -C /
+
+# Install bin
+mv runsc* runsc
+mv runc.amd64 runc
 chmod +x kubectl ${COMP_KUBE_PROXY} kubelet runc runsc
-sudo mv kubectl ${COMP_KUBE_PROXY} kubelet runc runsc /usr/local/bin/
-sudo tar -xvf crictl-v${VER_KUBE}-linux-amd64.tar.gz -C /usr/local/bin/
-sudo tar -xvf cni-plugins-amd64-v${VER_CNI_PLUGINS}.tgz -C /opt/cni/bin/
-sudo tar -xvf containerd-${VER_CONTAINERD}.linux-amd64.tar.gz -C /
+mv kubectl ${COMP_KUBE_PROXY} kubelet runc runsc /usr/local/bin/
 
 # install configurations for containerd
-sudo mv containerd.config.toml /etc/containerd/config.toml
-sudo mv containerd.service /etc/systemd/system/containerd.service
+mv containerd.config.toml /etc/containerd/config.toml
+mv containerd.service /etc/systemd/system/containerd.service
 
 # install configurations for cni
-sudo mv cni-bridge.json /etc/cni/net.d/10-bridge.conf
-sudo mv ${WORKER}-cni-loopback.json /etc/cni/net.d/99-loopback.conf
+mv ${WORKER}-cni-bridge.json /etc/cni/net.d/10-bridge.conf
+mv cni-loopback.json /etc/cni/net.d/99-loopback.conf
 
-# install configurations for kubelet
-sudo mv ${WORKER}.kubeconfig /var/lib/kubelet/kubeconfig
-sudo mv kubelet.service /etc/systemd/system/kubelet.service
-sudo mv ${WORKER}-kubelet.yaml /var/lib/kubelet/kubelet-config.yaml
+# Install configurations for kubelet
+mv ${WORKER}.kubeconfig /var/lib/kubelet/kubeconfig
+mv kubelet.service /etc/systemd/system/kubelet.service
+mv ${WORKER}-kubelet.yaml /var/lib/kubelet/kubelet-config.yaml
 
-# install configurations for kube-proxy
-sudo mv ${COMP_KUBE_PROXY}-config.yaml /var/lib/${COMP_KUBE_PROXY}/${COMP_KUBE_PROXY}-config.yaml
-sudo mv ${COMP_KUBE_PROXY}.service /etc/systemd/system/${COMP_KUBE_PROXY}.service
-sudo mv ${COMP_KUBE_PROXY}.kubeconfig /var/lib/${COMP_KUBE_PROXY}/kubeconfig
+# Install configurations for kube-proxy
+mv ${COMP_KUBE_PROXY}-config.yaml /var/lib/${COMP_KUBE_PROXY}/${COMP_KUBE_PROXY}-config.yaml
+mv ${COMP_KUBE_PROXY}.service /etc/systemd/system/${COMP_KUBE_PROXY}.service
+mv ${COMP_KUBE_PROXY}.kubeconfig /var/lib/${COMP_KUBE_PROXY}/kubeconfig
 
-# install certs for kubelet and kube-apiserver client
-sudo mv ca.pem /var/lib/${COMP_KUBE_API_SERVER}/
-sudo mv ${WORKER}*.pem /var/lib/kubelet/
+# Install certs for kubelet and kube-apiserver client
+mv ca.pem /var/lib/${COMP_KUBE_API_SERVER}/
+mv ${WORKER}*.pem /var/lib/kubelet/
 
-sudo systemctl daemon-reload
-sudo systemctl enable containerd kubelet ${COMP_KUBE_PROXY}
-sudo systemctl start containerd kubelet ${COMP_KUBE_PROXY}
+systemctl daemon-reload
+systemctl enable containerd kubelet ${COMP_KUBE_PROXY}
+systemctl restart containerd kubelet ${COMP_KUBE_PROXY}
+
+printf "\n\nDeploy ${WORKER} Success\n"
 EOF
   chmod +x ${DEPLOY_SCRIPT}
 }

@@ -6,12 +6,17 @@ _KUBE_DIR=..
 
 source ${_KUBE_DIR}/env.sh
 
-upload_bin() {
-  BIN_TAR="worker-comp.tar.xz"
+BIN_TAR="worker-comp.tar.xz"
+
+prepare_bin() {
   pushd ${DOWNLOAD_DIR}
     tar Jcf ../${GEN_DIR}/${BIN_TAR} *
   popd
+}
 
+upload_bin() {
+  TO_UPLOAD="${GEN_DIR}/${BIN_TAR}"
+  
   for i in ${!WORKER_LIST[@]}
   do
     WORKER=${WORKER_LIST[${i}]}
@@ -19,8 +24,6 @@ upload_bin() {
     SSH_PORT=${WORKER_SSH_PORT_LIST[${i}]}
     SSH_ID=${WORKER_SSH_ID_LIST[${i}]}
     USER=${WORKER_SSH_USER_LIST[${i}]}
-
-    TO_UPLOAD="${GEN_DIR}/${BIN_TAR}"
 
     scp -P ${SSH_PORT} -i ${SSH_ID} ${TO_UPLOAD} ${USER}@${SSH_ADDR}:~/
   done
@@ -51,3 +54,5 @@ upload_cfg() {
     scp -P ${SSH_PORT} -i ${SSH_ID} ${TO_UPLOAD} ${USER}@${SSH_ADDR}:~/
   done
 }
+
+$@

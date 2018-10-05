@@ -20,6 +20,8 @@ export CONTROLLER_EXTERN_IP_LIST=(10.0.0.10)
 export CONTROLLER_SSH_PORT_LIST=(22)
 export CONTROLLER_SSH_ID_LIST=("~/.ssh/id_rsa")
 export CONTROLLER_SSH_USER_LIST=("user")
+# password for `sudo` in deployment
+export CONTROLLER_SSH_USER_PASS_LIST=("my_password")
 
 # WORKER_LIST has to be the list of worker hostnames
 export WORKER_LIST=("kube-worker-1" "kube-worker-2" "kube-worker-3")
@@ -28,6 +30,8 @@ export WORKER_EXTERN_IP_LIST=(10.0.0.1 10.0.0.2 10.0.0.3)
 export WORKER_SSH_PORT_LIST=(22 22 22)
 export WORKER_SSH_ID_LIST=("~/.ssh/id_rsa" "~/.ssh/id_rsa" "~/.ssh/id_rsa")
 export WORKER_SSH_USER_LIST=("user" "user" "user")
+# password for `sudo` in deployment
+export WORKER_SSH_USER_PASS_LIST=("my_password" "my_password" "my_password")
 
 export KUBE_ETCD_CLUSTER_NAME="etcd-cluster-kube"
 export KUBE_ETCD_LISTEN_CLIENT_PORT="2379"
