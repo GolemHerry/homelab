@@ -9,14 +9,11 @@ source ${_KUBE_DIR}/env.sh
 CA_DIR=${_KUBE_DIR}/cert
 CA_GEN_DIR=${_KUBE_DIR}/cert/${GEN_DIR}
 
-rm -rf ${GEN_DIR}
-mkdir -p ${GEN_DIR}
-
 gen_etcd_conf() {
-  for i in ${!CONTROLLER_LIST[@]}
+  for i in ${!CTRL_LIST[@]}
   do
-  CONTROLLER=${CONTROLLER_LIST[${i}]}
-  INTERN_IP=${CONTROLLER_INTERN_IP_LIST[${i}]}
+  CONTROLLER=${CTRL_LIST[${i}]}
+  INTERN_IP=${CTRL_INTERN_IP_LIST[${i}]}
   ETCD_NAME=etcd-${CONTROLLER}
   C_PORT=${KUBE_ETCD_LISTEN_CLIENT_PORT}
   P_PORT=${KUBE_ETCD_LISTEN_PEER_PORT}
@@ -134,16 +131,16 @@ EOF
     -ca=${CA_GEN_DIR}/ca.pem \
     -ca-key=${CA_GEN_DIR}/ca-key.pem \
     -config=${CA_DIR}/ca-config.json \
-    -hostname=${WORKER_ADDR_LIST},${CONTROLLER_ADDR_LIST},${KUBE_PUB_ADDR},127.0.0.1,kubernetes.default \
+    -hostname=${WORKER_ADDR_LIST},${CTRL_ADDR_LIST},${KUBE_PUB_ADDR},127.0.0.1,kubernetes.default \
     -profile=kubernetes \
     ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/${COMP_KUBE_API_SERVER}
 
   rm -f ${CERT_CSR_CFG}
 
-  for i in ${!CONTROLLER_LIST[@]}
+  for i in ${!CTRL_LIST[@]}
   do
-  CONTROLLER=${CONTROLLER_LIST[${i}]}
-  INTERN_IP=${CONTROLLER_INTERN_IP_LIST[${i}]}
+  CONTROLLER=${CTRL_LIST[${i}]}
+  INTERN_IP=${CTRL_INTERN_IP_LIST[${i}]}
   cat > ${GEN_DIR}/${CONTROLLER}-kube-apiserver.service <<EOF
 [Unit]
 Description=Kubernetes API Server
@@ -365,9 +362,9 @@ server {
 }
 EOF
 
-  for i in ${!CONTROLLER_LIST[@]}
+  for i in ${!CTRL_LIST[@]}
   do
-  CONTROLLER=${CONTROLLER_LIST[${i}]}
+  CONTROLLER=${CTRL_LIST[${i}]}
   SCRIPT=${GEN_DIR}/${CONTROLLER}-deploy.sh
   cat > ${SCRIPT} <<EOF
 #!/bin/bash
@@ -439,13 +436,20 @@ EOF
   done
 }
 
-gen_etcd_conf
-gen_common
-gen_kube_apiserver_conf
-gen_kube_controller_manager_conf
-gen_kube_scheduler_conf
-gen_kube_service_account_conf
-gen_encryption_key
-gen_deploy_script
+gen_conf() {
+  gen_etcd_conf
+  gen_common
+  gen_kube_apiserver_conf
+  gen_kube_controller_manager_conf
+  gen_kube_scheduler_conf
+  gen_kube_service_account_conf
+  gen_encryption_key
+  gen_deploy_script
+}
+
+rm -rf ${GEN_DIR}
+mkdir -p ${GEN_DIR}
+
+$@
 
 rm -f ${GEN_DIR}/*.csr

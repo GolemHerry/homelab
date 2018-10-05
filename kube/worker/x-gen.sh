@@ -169,6 +169,7 @@ gen_kubelet_conf() {
   for i in ${!WORKER_LIST[@]}
   do
 
+  POD_CIDR=${WORKER_POD_CIDR_LIST[${i}]}
   WORKER=${WORKER_LIST[${i}]}
   INTERN_IP=${WORKER_INTERN_IP_LIST[${i}]}
   EXTERN_IP=${WORKER_EXTERN_IP_LIST[${i}]}
@@ -327,11 +328,15 @@ EOF
   chmod +x ${DEPLOY_SCRIPT}
 }
 
+gen_conf() {
+  gen_static_config
+  gen_kube_proxy_conf
+  gen_kubelet_conf
+}
+
 rm -rf ${GEN_DIR}
 mkdir -p ${GEN_DIR}
 
-gen_static_config
-gen_kube_proxy_conf
-gen_kubelet_conf
+$@
 
 rm -f ${GEN_DIR}/*.csr

@@ -9,8 +9,6 @@
 5. Install `kubernetes` [worker](./worker) components on some of your servers, and configure
 6. Configure network and deploy
 
-__Notice:__ I will create one virtual server serving both `etcd` and `kubernetes` controller, and three virtual servers serving as `kubernetes` worker
-
 ## How to use
 
 ### First time deployment
@@ -22,10 +20,10 @@ $ cp env.template.sh env.sh
 # edit `env.sh` with your favourite editor
 ```
 
-1.Generate certificates and kubeconfig
+1.Generate CA, certificates and kubeconfig
 
 ```bash
-$ ./x-helper.sh gen_all
+$ ./x-helper.sh gen_ca && ./x-helper.sh gen_all
 ```
 
 2.Download all software required
@@ -37,7 +35,7 @@ $ ./x-helper.sh download_all
 3.Prepare files to upload to your server
 
 ```bash
-$ ./x-helper.sh prepare_upload_bin_all
+$ ./x-helper.sh prepare_bin_all
 ```
 
 4.Upload all required files to your server
@@ -50,6 +48,12 @@ $ ./x-helper.sh upload_all
 
 ```bash
 $ ./x-helper.sh deploy_all
+```
+
+6.Config local `kubectl`
+
+```bash
+$ ./x-helper.sh config_local_kubectl
 ```
 
 ### Configuration Update
@@ -68,7 +72,7 @@ $ ./x-helper.sh gen_all
 $ ./x-helper.sh redeploy_all
 ```
 
-__NOTE:__ these steps will generate new `CA` and you have to change your local certs accordingly
+__NOTE:__ these steps won't generate new CA, so you don't need to 
 
 ## References
 

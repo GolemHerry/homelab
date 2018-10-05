@@ -81,10 +81,12 @@ EOF
     --kubeconfig=${GEN_DIR}/admin.kubeconfig
 }
 
-rm -rf ${GEN_DIR}
+gen_conf() {
+  gen_admin_conf
+}
+
 mkdir -p ${GEN_DIR}
 
-gen_ca
-gen_admin_conf
+$@
 
 rm -f ${GEN_DIR}/*.csr

@@ -2,12 +2,18 @@
 
 set -e
 
+gen_ca() {
+  pushd cert
+    ./x-gen.sh gen_ca
+  popd
+}
+
 gen_all() {
   TARGETS=(cert controller worker)
   for T in ${TARGETS[@]}
   do
     pushd ${T}
-      ./x-gen.sh
+      ./x-gen.sh gen_conf
     popd
   done
 }
@@ -22,7 +28,7 @@ download_all() {
   done
 }
 
-prepare_upload_bin_all() {
+prepare_bin_all() {
   TARGETS=(controller worker)
   for T in ${TARGETS[@]}
   do
@@ -60,14 +66,14 @@ upload_all() {
 deploy_controllers() {
   source ./env.sh
 
-  for i in ${CONTROLLER_LIST[@]}
+  for i in ${CTRL_LIST[@]}
   do
-    CONTROLLER=${CONTROLLER_LIST[${i}]}
-    SSH_ADDR=${CONTROLLER_EXTERN_IP_LIST[${i}]}
-    SSH_PORT=${CONTROLLER_SSH_PORT_LIST[${i}]}
-    SSH_ID=${CONTROLLER_SSH_ID_LIST[${i}]}
-    USER=${CONTROLLER_SSH_USER_LIST[${i}]}
-    PASS=${CONTROLLER_SSH_USER_PASS_LIST[${i}]}
+    CONTROLLER=${CTRL_LIST[${i}]}
+    SSH_ADDR=${CTRL_EXTERN_IP_LIST[${i}]}
+    SSH_PORT=${CTRL_SSH_PORT_LIST[${i}]}
+    SSH_ID=${CTRL_SSH_ID_LIST[${i}]}
+    USER=${CTRL_SSH_USER_LIST[${i}]}
+    PASS=${CTRL_SSH_USER_PASS_LIST[${i}]}
     
     printf "\n\nDeploying Controller: ${CONTROLLER}\n\n\n"
     ssh -p ${SSH_PORT} -i ${SSH_ID} ${USER}@${SSH_ADDR} \
@@ -101,6 +107,25 @@ deploy_all() {
 redeploy_all() {
   upload_cfg_all
   deploy_all
+}
+
+config_local_kubectl() {
+  source ./env.sh
+
+  kubectl config set-cluster ${CLUSTER_NAME} \
+    --certificate-authority=./cert/${GEN_DIR}/ca.pem \
+    --embed-certs=true \
+    --server=https://${REMOTE_KUBE_PUB_ADDR}:${REMOTE_KUBE_LISTEN_PORT}
+
+  kubectl config set-credentials admin \
+    --client-certificate=./cert/${GEN_DIR}/admin.pem \
+    --client-key=./cert/${GEN_DIR}/admin-key.pem
+
+  kubectl config set-context ${CONTEXT_NAME} \
+    --cluster=${CLUSTER_NAME} \
+    --user=admin
+
+  kubectl config use-context ${CONTEXT_NAME}
 }
 
 $@

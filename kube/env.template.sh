@@ -9,24 +9,31 @@
 #
 
 export KUBE_PUB_ADDR="10.0.0.10"
+export KUBE_API_SERVER_PORT="6443"
+
+# address and port for remote access ()
+export REMOTE_KUBE_PUB_ADDR="1.1.1.1"
+export REMOTE_KUBE_API_SERVER_PORT="6443"
+
 export CLUSTER_NAME="kubernetes-the-hard-way"
 export CLUSTER_DNS_SERVER="10.0.0.254"
 export CONTEXT_NAME="default"
 
-# CONTROLLER_LIST is not restricted by controller hostnames
-export CONTROLLER_LIST=("kube-controller")
-export CONTROLLER_INTERN_IP_LIST=(10.0.0.10)
-export CONTROLLER_EXTERN_IP_LIST=(10.0.0.10)
-export CONTROLLER_SSH_PORT_LIST=(22)
-export CONTROLLER_SSH_ID_LIST=("~/.ssh/id_rsa")
-export CONTROLLER_SSH_USER_LIST=("user")
+# CTRL_LIST is not restricted by controller hostnames
+export CTRL_LIST=("my-kube-ctrl")
+export CTRL_INTERN_IP_LIST=(10.0.0.10)
+export CTRL_EXTERN_IP_LIST=(10.0.0.10)
+export CTRL_SSH_PORT_LIST=(22)
+export CTRL_SSH_ID_LIST=("~/.ssh/id_rsa")
+export CTRL_SSH_USER_LIST=("user")
 # password for `sudo` in deployment
-export CONTROLLER_SSH_USER_PASS_LIST=("my_password")
+export CTRL_SSH_USER_PASS_LIST=("my_password")
 
-# WORKER_LIST has to be the list of worker hostnames
-export WORKER_LIST=("kube-worker-1" "kube-worker-2" "kube-worker-3")
+# items in WORKER_LIST MUST be identical with worker hostnames
+export WORKER_LIST=("my-kube-worker-1" "my-kube-worker-2" "my-kube-worker-3")
 export WORKER_INTERN_IP_LIST=(10.0.0.1 10.0.0.2 10.0.0.3)
 export WORKER_EXTERN_IP_LIST=(10.0.0.1 10.0.0.2 10.0.0.3)
+export WORKER_POD_CIDR_LIST=("10.100.0.0/24" "10.100.0.0/24" "10.100.0.0/24")
 export WORKER_SSH_PORT_LIST=(22 22 22)
 export WORKER_SSH_ID_LIST=("~/.ssh/id_rsa" "~/.ssh/id_rsa" "~/.ssh/id_rsa")
 export WORKER_SSH_USER_LIST=("user" "user" "user")
@@ -40,7 +47,6 @@ export KUBE_ETCD_LISTEN_PEER_PORT="2380"
 export KUBE_SERVICE_IP_RANGE="10.32.0.0/24"
 export KUBE_SERVICE_PORT_RANGE="30000-32767"
 export KUBE_CLUSTER_CIDR="10.200.0.0/16"
-export KUBE_API_SERVER_PORT="6443"
 
 export CERT_ORG_UNIT="Kubernetes The Hard Way"
 export CERT_COUNTRY="US"
@@ -71,24 +77,28 @@ export GEN_DIR="generated"
 export DOWNLOAD_DIR="download"
 
 export WORKER_ADDR_LIST=""
-export CONTROLLER_ADDR_LIST""
+export CTRL_ADDR_LIST""
 export ETCD_INITIAL_CLUSTERS=""
 export ETCD_SERVERS=""
 
-for IP in ${WORKER_INTERN_IP_LIST[@]}
+for i in ${!WORKER_INTERN_IP_LIST[@]}
 do
-export WORKER_ADDR_LIST="${IP},${WORKER_ADDR_LIST}"
+INTERN_IP=${WORKER_INTERN_IP_LIST[${i}]}
+EXTERN_IP=${WORKER_EXTERN_IP_LIST[${i}]}
+export WORKER_ADDR_LIST="${INTERN_IP},${EXTERN_IP},${WORKER_ADDR_LIST}"
 done
 
-for IP in ${CONTROLLER_INTERN_IP_LIST[@]}
+for i in ${!CTRL_INTERN_IP_LIST[@]}
 do
-export CONTROLLER_ADDR_LIST="${IP},${CONTROLLER_ADDR_LIST}"
+INTERN_IP=${CTRL_INTERN_IP_LIST[${i}]}
+EXTERN_IP=${CTRL_EXTERN_IP_LIST[${i}]}
+export CTRL_ADDR_LIST="${INTERN_IP},${EXTERN_IP},${CTRL_ADDR_LIST}"
 done
 
-for i in ${!CONTROLLER_LIST[@]}
+for i in ${!CTRL_LIST[@]}
 do
-CONTROLLER=${CONTROLLER_LIST[${i}]}
-INTERN_IP=${CONTROLLER_INTERN_IP_LIST[${i}]}
+CONTROLLER=${CTRL_LIST[${i}]}
+INTERN_IP=${CTRL_INTERN_IP_LIST[${i}]}
 URL="https://${INTERN_IP}:${KUBE_ETCD_LISTEN_PEER_PORT}"
 export ETCD_INITIAL_CLUSTERS="etcd-${CONTROLLER}=${URL},${ETCD_INITIAL_CLUSTERS}"
 export ETCD_SERVERS="https://${INTERN_IP}:${KUBE_ETCD_LISTEN_CLIENT_PORT},${ETCD_SERVERS}"

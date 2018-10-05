@@ -8,7 +8,7 @@ source ${_KUBE_DIR}/env.sh
 
 URL_KUBE_API_SERVER="https://storage.googleapis.com/kubernetes-release/release/v${VER_KUBE}/bin/linux/amd64/kube-apiserver"
 
-URL_KUBE_CTRL_MGR="https://storage.googleapis.com/kubernetes-release/release/v${VER_KUBE}/bin/linux/amd64/kube-controller-manager"
+URL_KUBE_CTRL_MGR="https://storage.googleapis.com/kubernetes-release/release/v${VER_KUBE}/bin/linux/amd64/${COMP_KUBE_CTRL_MGR}"
 
 URL_KUBE_SCHEDULER="https://storage.googleapis.com/kubernetes-release/release/v${VER_KUBE}/bin/linux/amd64/kube-scheduler"
 
