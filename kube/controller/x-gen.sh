@@ -447,7 +447,6 @@ gen_conf() {
   gen_deploy_script
 }
 
-rm -rf ${GEN_DIR}
 mkdir -p ${GEN_DIR}
 
 $@

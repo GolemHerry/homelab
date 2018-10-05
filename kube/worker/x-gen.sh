@@ -169,14 +169,14 @@ gen_kubelet_conf() {
   for i in ${!WORKER_LIST[@]}
   do
 
-  POD_CIDR=${WORKER_POD_CIDR_LIST[${i}]}
-  WORKER=${WORKER_LIST[${i}]}
-  INTERN_IP=${WORKER_INTERN_IP_LIST[${i}]}
-  EXTERN_IP=${WORKER_EXTERN_IP_LIST[${i}]}
+    WORKER=${WORKER_LIST[${i}]}
+    POD_CIDR=${WORKER_POD_CIDR_LIST[${i}]}
+    INTERN_IP=${WORKER_INTERN_IP_LIST[${i}]}
+    EXTERN_IP=${WORKER_EXTERN_IP_LIST[${i}]}
 
-  CERT_CSR_CFG=${GEN_DIR}/csr-${WORKER}.json
+    CERT_CSR_CFG=${GEN_DIR}/csr-${WORKER}.json
 
-  cat > ${CERT_CSR_CFG} <<EOF
+    cat > ${CERT_CSR_CFG} <<EOF
 {
   "CN": "system:node:${WORKER}",
   "key": {
@@ -223,7 +223,6 @@ EOF
 
   kubectl config use-context ${CONTEXT_NAME} \
       --kubeconfig=${GEN_DIR}/${WORKER}.kubeconfig
-  done
   
   CFG_CNI_BRIDGE=${GEN_DIR}/${WORKER}-cni-bridge.json
   cat > ${CFG_CNI_BRIDGE} <<EOF
@@ -326,6 +325,8 @@ systemctl restart containerd kubelet ${COMP_KUBE_PROXY}
 printf "\n\nDeploy ${WORKER} Success\n"
 EOF
   chmod +x ${DEPLOY_SCRIPT}
+
+  done
 }
 
 gen_conf() {
@@ -334,7 +335,6 @@ gen_conf() {
   gen_kubelet_conf
 }
 
-rm -rf ${GEN_DIR}
 mkdir -p ${GEN_DIR}
 
 $@

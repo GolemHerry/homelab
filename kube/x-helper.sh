@@ -66,7 +66,7 @@ upload_all() {
 deploy_controllers() {
   source ./env.sh
 
-  for i in ${CTRL_LIST[@]}
+  for i in ${!CTRL_LIST[@]}
   do
     CONTROLLER=${CTRL_LIST[${i}]}
     SSH_ADDR=${CTRL_EXTERN_IP_LIST[${i}]}
@@ -84,7 +84,7 @@ deploy_controllers() {
 deploy_workers() {
   source ./env.sh
 
-  for i in ${WORKER_LIST[@]}
+  for i in ${!WORKER_LIST[@]}
   do
     WORKER=${WORKER_LIST[${i}]}
     SSH_ADDR=${WORKER_EXTERN_IP_LIST[${i}]}
