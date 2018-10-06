@@ -72,7 +72,9 @@ $ ./x-helper.sh gen_all
 $ ./x-helper.sh redeploy_all
 ```
 
-__NOTE:__ these steps won't generate new CA, so you don't need to 
+__NOTE:__ these steps won't generate new CA, so you don't need to
+
+### Network
 
 ## References
 

@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 set -e
 
@@ -38,8 +38,10 @@ upload_cfg() {
     SSH_ID=${CTRL_SSH_ID_LIST[${i}]}
     USER=${CTRL_SSH_USER_LIST[${i}]}
 
-    TO_UPLOAD="${GEN_DIR}/${COMP_KUBE_SERVICE_ACCOUNT}*.pem \
-      ${GEN_DIR}/${COMP_KUBE_API_SERVER}*.pem \
+    TO_UPLOAD="${GEN_DIR}/${COMP_KUBE_SERVICE_ACCOUNT}.pem \
+      ${GEN_DIR}/${COMP_KUBE_SERVICE_ACCOUNT}-key.pem \
+      ${GEN_DIR}/${COMP_KUBE_API_SERVER}.pem \
+      ${GEN_DIR}/${COMP_KUBE_API_SERVER}-key.pem \
       ${GEN_DIR}/${COMP_KUBE_CTRL_MGR}.kubeconfig \
       ${GEN_DIR}/${COMP_KUBE_CTRL_MGR}.service \
       ${GEN_DIR}/${COMP_KUBE_SCHEDULER}.kubeconfig \

@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 set -e
 
@@ -10,7 +10,7 @@ BIN_TAR="worker-comp.tar.xz"
 
 prepare_bin() {
   pushd ${DOWNLOAD_DIR}
-    tar Jcf ../${GEN_DIR}/${BIN_TAR} *
+    tar Jcf ../${GEN_DIR}/${BIN_TAR} ./*
   popd
 }
 
@@ -39,7 +39,8 @@ upload_cfg() {
     USER=${WORKER_SSH_USER_LIST[${i}]}
 
     TO_UPLOAD="${GEN_DIR}/kubelet.service \
-      ${GEN_DIR}/${WORKER}*.pem \
+      ${GEN_DIR}/${WORKER}.pem \
+      ${GEN_DIR}/${WORKER}-key.pem \
       ${GEN_DIR}/${WORKER}.kubeconfig \
       ${GEN_DIR}/${WORKER}-kubelet.yaml \
       ${GEN_DIR}/${COMP_KUBE_PROXY}.kubeconfig \
@@ -47,6 +48,7 @@ upload_cfg() {
       ${GEN_DIR}/${COMP_KUBE_PROXY}.service \
       ${GEN_DIR}/containerd.config.toml \
       ${GEN_DIR}/containerd.service \
+      ${GEN_DIR}/crictl.yaml \
       ${GEN_DIR}/cni-loopback.json \
       ${GEN_DIR}/${WORKER}-cni-bridge.json \
       ${GEN_DIR}/${WORKER}-deploy.sh"

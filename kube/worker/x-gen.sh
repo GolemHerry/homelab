@@ -9,9 +9,19 @@ CA_DIR=${_KUBE_DIR}/cert
 CA_GEN_DIR=${_KUBE_DIR}/cert/${GEN_DIR}
 
 gen_static_config() {
+  CFG_CRICTL=${GEN_DIR}/crictl.yaml
+  cat > ${CFG_CRICTL} <<EOF
+runtime-endpoint: unix:///run/containerd/containerd.sock
+image-endpoint: unix:///run/containerd/containerd.sock
+timeout: 10
+debug: true
+EOF
+
   CFG_CONTAINERD=${GEN_DIR}/containerd.config.toml
   cat > ${CFG_CONTAINERD} <<EOF
 [plugins]
+  [plugins.cri]
+  sandbox_image = "registry.cn-hangzhou.aliyuncs.com/google_containers/pause-amd64:3.1"
   [plugins.cri.containerd]
     snapshotter = "overlayfs"
     [plugins.cri.containerd.default_runtime]
@@ -26,7 +36,10 @@ gen_static_config() {
       runtime_type = "io.containerd.runtime.v1.linux"
       runtime_engine = "/usr/local/bin/runsc"
       runtime_root = "/run/containerd/runsc"
-
+  [plugins.cri.registry]
+    [plugins.cri.registry.mirrors]
+      [plugins.cri.registry.mirrors."docker.io"]
+        endpoint = ["https://registry-1.docker.io"]
 EOF
   CFG_CNI_LOOPBACK=${GEN_DIR}/cni-loopback.json
   cat > ${CFG_CNI_LOOPBACK} <<EOF
@@ -296,11 +309,12 @@ mv runc.amd64 runc
 chmod +x kubectl ${COMP_KUBE_PROXY} kubelet runc runsc
 mv kubectl ${COMP_KUBE_PROXY} kubelet runc runsc /usr/local/bin/
 
-# install configurations for containerd
+# Install configurations for containerd
 mv containerd.config.toml /etc/containerd/config.toml
 mv containerd.service /etc/systemd/system/containerd.service
+mv crictl.yaml /etc/crictl.yaml
 
-# install configurations for cni
+# Install configurations for cni
 mv ${WORKER}-cni-bridge.json /etc/cni/net.d/10-bridge.conf
 mv cni-loopback.json /etc/cni/net.d/99-loopback.conf
 
@@ -324,7 +338,7 @@ systemctl restart containerd kubelet ${COMP_KUBE_PROXY}
 
 printf "\n\nDeploy ${WORKER} Success\n"
 EOF
-  chmod +x ${DEPLOY_SCRIPT}
+    chmod +x ${DEPLOY_SCRIPT}
 
   done
 }
