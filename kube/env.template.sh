@@ -14,9 +14,19 @@ export KUBE_API_SERVER_PORT="6443"
 # address and port for remote access ()
 export REMOTE_KUBE_PUB_ADDR="1.1.1.1"
 export REMOTE_KUBE_API_SERVER_PORT="6443"
+# cluster cidr to include all worker pod cluster cidr
+export KUBE_CLUSTER_CIDR="10.100.0.0/16"
+
+# IP range to assign service cluster IPs
+# MUST NOT overlap with any IP ranges assigned to nodes for pods
+export KUBE_SERVICE_IP_RANGE="10.32.0.0/24"
+# cluster dns server address in coredns.yaml
+# dns server is a service, so in range 10.
+export CLUSTER_DNS_SERVER="10.10.0.254"
+
+export KUBE_NODE_PORT_RANGE="30000-32767"
 
 export CLUSTER_NAME="kubernetes-the-hard-way"
-export CLUSTER_DNS_SERVER="10.0.0.254"
 export CONTEXT_NAME="default"
 
 # CTRL_LIST is not restricted by controller hostnames
@@ -33,7 +43,6 @@ export CTRL_SSH_USER_PASS_LIST=("my_password")
 export WORKER_LIST=("my-kube-worker-1" "my-kube-worker-2" "my-kube-worker-3")
 export WORKER_INTERN_IP_LIST=("10.0.0.1" "10.0.0.2" "10.0.0.3")
 export WORKER_EXTERN_IP_LIST=("10.0.0.1" "10.0.0.2" "10.0.0.3")
-export WORKER_POD_CIDR=("10.0.0.0/24" "10.0.1.0/24" "10.0.2.0/24" "10.0.3.0/24")
 export WORKER_POD_CIDR_LIST=("10.100.0.0/24" "10.100.0.0/24" "10.100.0.0/24")
 export WORKER_SSH_PORT_LIST=("22" "22" "22")
 export WORKER_SSH_ID_LIST=("~/.ssh/id_rsa" "~/.ssh/id_rsa" "~/.ssh/id_rsa")
@@ -44,10 +53,6 @@ export WORKER_SSH_USER_PASS_LIST=("my_password" "my_password" "my_password")
 export KUBE_ETCD_CLUSTER_NAME="etcd-cluster-kube"
 export KUBE_ETCD_LISTEN_CLIENT_PORT="2379"
 export KUBE_ETCD_LISTEN_PEER_PORT="2380"
-
-export KUBE_SERVICE_IP_RANGE="10.32.0.0/24"
-export KUBE_SERVICE_PORT_RANGE="30000-32767"
-export KUBE_CLUSTER_CIDR="10.200.0.0/16"
 
 export CERT_ORG_UNIT="Kubernetes The Hard Way"
 export CERT_COUNTRY="US"

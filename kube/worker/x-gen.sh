@@ -14,7 +14,7 @@ gen_static_config() {
 runtime-endpoint: unix:///run/containerd/containerd.sock
 image-endpoint: unix:///run/containerd/containerd.sock
 timeout: 10
-debug: true
+debug: false
 EOF
 
   CFG_CONTAINERD=${GEN_DIR}/containerd.config.toml

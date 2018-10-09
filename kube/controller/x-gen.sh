@@ -131,7 +131,7 @@ EOF
     -ca=${CA_GEN_DIR}/ca.pem \
     -ca-key=${CA_GEN_DIR}/ca-key.pem \
     -config=${CA_DIR}/ca-config.json \
-    -hostname=${WORKER_ADDR_LIST},${CTRL_ADDR_LIST},${KUBE_PUB_ADDR},127.0.0.1,kubernetes.default \
+    -hostname=${WORKER_ADDR_LIST},${CTRL_ADDR_LIST},${KUBE_PUB_ADDR},${GATEWAY_ADDR},127.0.0.1,kubernetes.default \
     -profile=kubernetes \
     ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/${COMP_KUBE_API_SERVER}
 
@@ -173,7 +173,7 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --runtime-config=api/all \\
   --service-account-key-file=/var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_SERVICE_ACCOUNT}.pem \\
   --service-cluster-ip-range=${KUBE_SERVICE_IP_RANGE} \\
-  --service-node-port-range=${KUBE_SERVICE_PORT_RANGE} \\
+  --service-node-port-range=${KUBE_NODE_PORT_RANGE} \\
   --tls-cert-file=/var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_API_SERVER}.pem \\
   --tls-private-key-file=/var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_API_SERVER}-key.pem \\
   --v=2

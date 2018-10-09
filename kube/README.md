@@ -1,5 +1,15 @@
 # Kube Installation
 
+No `Ansible`, just plain shell scripts
+
+## Prerequisite
+
+### Serverside
+
+- ssh, scp (public-key installed)
+
+### Localhost
+
 ## General steps
 
 1. Design your network and create virtual/bare-metal servers
@@ -44,7 +54,7 @@ $ ./x-helper.sh prepare_bin_all
 $ ./x-helper.sh upload_all
 ```
 
-5.Deploy `Kubernetes` to your server with ssh
+5.Deploy `Kubernetes` to your server
 
 ```bash
 $ ./x-helper.sh deploy_all

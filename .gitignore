@@ -1,8 +1,5 @@
 *.xml
 
-
-/kube/services
-
 /cert
 /env.sh
 /vm/
