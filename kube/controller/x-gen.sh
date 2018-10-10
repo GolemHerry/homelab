@@ -12,13 +12,13 @@ CA_GEN_DIR=${_KUBE_DIR}/cert/${GEN_DIR}
 gen_etcd_conf() {
   for i in ${!CTRL_LIST[@]}
   do
-  CONTROLLER=${CTRL_LIST[${i}]}
-  INTERN_IP=${CTRL_INTERN_IP_LIST[${i}]}
-  ETCD_NAME=etcd-${CONTROLLER}
-  C_PORT=${KUBE_ETCD_LISTEN_CLIENT_PORT}
-  P_PORT=${KUBE_ETCD_LISTEN_PEER_PORT}
+    CONTROLLER=${CTRL_LIST[${i}]}
+    INTERN_IP=${CTRL_INTERN_IP_LIST[${i}]}
+    ETCD_NAME=etcd-${CONTROLLER}
+    C_PORT=${KUBE_ETCD_LISTEN_CLIENT_PORT}
+    P_PORT=${KUBE_ETCD_LISTEN_PEER_PORT}
 
-  cat > ${GEN_DIR}/${CONTROLLER}.etcd.service <<EOF
+    cat > ${GEN_DIR}/${CONTROLLER}.etcd.service <<EOF
 # filename: /etc/systemd/system/etcd.service
 [Unit]
 Description=etcd
@@ -53,7 +53,7 @@ EOF
   done
 }
 
-gen_common() {
+gen_common_cert() {
   TARGET=(${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER})
   for T in ${TARGET[@]}
   do
@@ -75,7 +75,6 @@ gen_common() {
   }]
 }
 EOF
-
     cfssl gencert \
       -ca=${CA_GEN_DIR}/ca.pem \
       -ca-key=${CA_GEN_DIR}/ca-key.pem \
@@ -83,6 +82,14 @@ EOF
       -profile=kubernetes \
       ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/${T}
 
+    rm -f ${CERT_CSR_CFG}
+  done
+}
+
+gen_common_conf() {
+  TARGET=(${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER})
+  for T in ${TARGET[@]}
+  do
     kubectl config set-cluster ${CLUSTER_NAME} \
       --certificate-authority=${CA_GEN_DIR}/ca.pem \
       --embed-certs=true \
@@ -102,13 +109,10 @@ EOF
 
     kubectl config use-context ${CONTEXT_NAME} \
       --kubeconfig=${GEN_DIR}/${T}.kubeconfig
-
-    rm -f ${CERT_CSR_CFG}
   done
 }
 
-# generate 
-gen_kube_apiserver_conf() {
+gen_kube_apiserver_cert() {
   CERT_CSR_CFG=${GEN_DIR}/${COMP_KUBE_API_SERVER}.json
   cat > ${CERT_CSR_CFG} <<EOF
 {
@@ -136,12 +140,14 @@ EOF
     ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/${COMP_KUBE_API_SERVER}
 
   rm -f ${CERT_CSR_CFG}
+}
 
+gen_kube_apiserver_conf() {
   for i in ${!CTRL_LIST[@]}
   do
-  CONTROLLER=${CTRL_LIST[${i}]}
-  INTERN_IP=${CTRL_INTERN_IP_LIST[${i}]}
-  cat > ${GEN_DIR}/${CONTROLLER}-kube-apiserver.service <<EOF
+    CONTROLLER=${CTRL_LIST[${i}]}
+    INTERN_IP=${CTRL_INTERN_IP_LIST[${i}]}
+    cat > ${GEN_DIR}/${CONTROLLER}-kube-apiserver.service <<EOF
 [Unit]
 Description=Kubernetes API Server
 Documentation=https://github.com/kubernetes/kubernetes
@@ -246,12 +252,10 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-
 }
 
-gen_kube_service_account_conf() {
+gen_kube_service_account_cert() {
   CERT_CSR_CFG=${GEN_DIR}/csr-${COMP_KUBE_SERVICE_ACCOUNT}.json
-
   cat > ${CERT_CSR_CFG} <<EOF
 {
   "CN": "${COMP_KUBE_SERVICE_ACCOUNT}s",
@@ -277,7 +281,9 @@ EOF
     ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/${COMP_KUBE_SERVICE_ACCOUNT}
   
   rm -f ${CERT_CSR_CFG}
+}
 
+gen_kube_service_account_conf() {
   kubectl config set-cluster ${CLUSTER_NAME} \
     --certificate-authority=${CA_GEN_DIR}/ca.pem \
     --embed-certs=true \
@@ -301,7 +307,6 @@ EOF
 
 gen_encryption_key() {
   ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64)
-
   cat > ${GEN_DIR}/encryption-config.yaml <<EOF
 kind: EncryptionConfig
 apiVersion: v1
@@ -371,87 +376,137 @@ EOF
 
   for i in ${!CTRL_LIST[@]}
   do
-  CONTROLLER=${CTRL_LIST[${i}]}
-  SCRIPT=${GEN_DIR}/${CONTROLLER}-deploy.sh
-  cat > ${SCRIPT} <<EOF
+    CONTROLLER=${CTRL_LIST[${i}]}
+    SCRIPT=${GEN_DIR}/${CONTROLLER}-deploy.sh
+    cat > ${SCRIPT} <<EOF
 #!/bin/bash
 set -e
-
-apt-get update
-apt-get install -y nginx
-
-# decompress components
-tar xf controller-comp.tar.xz
-tar xf etcd-v${VER_ETCD}-linux-amd64.tar.gz
 
 mkdir -p \\
   /etc/${COMP_KUBE_API_SERVER}/config \\
   /var/lib/${COMP_KUBE_API_SERVER}/ \\
   /etc/etcd
 
-# copy certs required by etcd
-cp ca.pem ${COMP_KUBE_API_SERVER}*.pem /etc/etcd/
+install_cert() {
+  # copy certs required by etcd
+  cp ca.pem ${COMP_KUBE_API_SERVER}*.pem /etc/etcd/
+  
+  # Install certs
+  mv ca*.pem \\
+    ${COMP_KUBE_API_SERVER}*.pem \\
+    ${COMP_KUBE_SERVICE_ACCOUNT}*.pem \\
+    aggregator-proxy-client*.pem \\
+    encryption-config.yaml \\
+    /var/lib/${COMP_KUBE_API_SERVER}/
+}
 
-# Install certs
-mv ca*.pem \\
-  ${COMP_KUBE_API_SERVER}*.pem \\
-  ${COMP_KUBE_SERVICE_ACCOUNT}*.pem \\
-  aggregator-proxy-client*.pem \\
-  encryption-config.yaml \\
-  /var/lib/${COMP_KUBE_API_SERVER}/
+install_conf() {
+  # Install Systemd Configurations
+  mv ${CONTROLLER}-kube-apiserver.service /etc/systemd/system/kube-apiserver.service
+  mv ${COMP_KUBE_CTRL_MGR}.service /etc/systemd/system/${COMP_KUBE_CTRL_MGR}.service
+  mv ${COMP_KUBE_SCHEDULER}.service /etc/systemd/system/${COMP_KUBE_SCHEDULER}.service
+  mv ${CONTROLLER}.etcd.service /etc/systemd/system/etcd.service
 
-# Install etcd
-mv etcd-v${VER_ETCD}-linux-amd64/etcd* /usr/local/bin/
+  # Install Kube Configurations
+  mv ${COMP_KUBE_SCHEDULER}.kubeconfig /var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_SCHEDULER}.kubeconfig
+  mv ${COMP_KUBE_SCHEDULER}.yaml /etc/${COMP_KUBE_API_SERVER}/config/${COMP_KUBE_SCHEDULER}.yaml
+  mv ${COMP_KUBE_CTRL_MGR}.kubeconfig /var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_CTRL_MGR}.kubeconfig
 
-# Install Kube Bin
-chmod +x kubectl kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
-mv kubectl kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER} /usr/local/bin/
+  # Setup Health Check
+  mv healthcheck.nginx /etc/nginx/sites-available/kubernetes.default.svc.cluster.local
+  rm -f /etc/nginx/sites-enabled/kubernetes.default.svc.cluster.local
+  ln -s /etc/nginx/sites-available/kubernetes.default.svc.cluster.local /etc/nginx/sites-enabled/
+}
 
-# Install Systemd Configurations
-mv ${CONTROLLER}-kube-apiserver.service /etc/systemd/system/kube-apiserver.service
-mv ${COMP_KUBE_CTRL_MGR}.service /etc/systemd/system/${COMP_KUBE_CTRL_MGR}.service
-mv ${COMP_KUBE_SCHEDULER}.service /etc/systemd/system/${COMP_KUBE_SCHEDULER}.service
-mv ${CONTROLLER}.etcd.service /etc/systemd/system/etcd.service
+apply_rbac() {
+  # Enable RBAC Auth
+  kubectl apply --kubeconfig ~/admin.kubeconfig -f ~/RBAC-create.yaml
+  kubectl apply --kubeconfig ~/admin.kubeconfig -f ~/RBAC-bind.yaml
 
-# Install Kube Configurations
-mv ${COMP_KUBE_SCHEDULER}.kubeconfig /var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_SCHEDULER}.kubeconfig
-mv ${COMP_KUBE_SCHEDULER}.yaml /etc/${COMP_KUBE_API_SERVER}/config/${COMP_KUBE_SCHEDULER}.yaml
-mv ${COMP_KUBE_CTRL_MGR}.kubeconfig /var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_CTRL_MGR}.kubeconfig
+  rm -rf ~/RBAC-*.yaml
+}
 
-# Setup Health Check
-mv healthcheck.nginx /etc/nginx/sites-available/kubernetes.default.svc.cluster.local
-rm -f /etc/nginx/sites-enabled/kubernetes.default.svc.cluster.local
-ln -s /etc/nginx/sites-available/kubernetes.default.svc.cluster.local /etc/nginx/sites-enabled/
+install_bin() {
+  apt-get update
+  apt-get install -y nginx
 
-systemctl daemon-reload
-systemctl enable etcd nginx kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
-systemctl restart nginx etcd kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
+  # Decompress components
+  tar xf controller-comp.tar.xz
+  tar xf etcd-v${VER_ETCD}-linux-amd64.tar.gz
 
-echo "waiting for kube-apiserver"
+  # Install etcd
+  mv etcd-v${VER_ETCD}-linux-amd64/etcd* /usr/local/bin/
 
-sleep 30
+  # Install Kube Bin
+  chmod +x kubectl kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
+  mv kubectl kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER} /usr/local/bin/
+  
+  rm etcd-v${VER_ETCD}-linux-amd64
+}
 
-# Enable RBAC Auth
-kubectl apply --kubeconfig ~/admin.kubeconfig -f ~/RBAC-create.yaml
-kubectl apply --kubeconfig ~/admin.kubeconfig -f ~/RBAC-bind.yaml
+reload() {
+  systemctl daemon-reload
+  systemctl enable etcd nginx kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
+  systemctl restart nginx etcd kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
+}
 
-rm -rf ~/RBAC-*.yaml etcd-v${VER_ETCD}-linux-amd64
+deploy_cert() {
+  install_cert
+  reload
+}
 
-printf "\n\nDeploy ${CONTROLLER} Success\n"
+deploy_conf() {
+  install_conf
+  reload
+
+  echo "Waiting For Kubernetes-APIServer (15s)"
+  sleep 15
+  apply_rbac
+
+  printf "\n\nDeploy ${CONTROLLER} Config Success\n"
+}
+
+deploy_bin() {
+  install_bin
+  reload
+
+  printf "\n\nDeploy ${CONTROLLER} Bin Success\n"
+}
+
+deploy_all() {
+  install_bin
+  install_cert
+  install_conf
+  reload
+
+  echo "Waiting For Kubernetes-APIServer (15s)"
+  sleep 15
+  apply_rbac
+
+  printf "\n\nDeploy ${CONTROLLER} All Success\n"
+}
+
+\$@
+
 EOF
-
-  chmod +x ${SCRIPT}
+    chmod +x ${SCRIPT}
   done
+}
+
+gen_cert() {
+  gen_common_cert
+  gen_kube_apiserver_cert
+  gen_kube_service_account_cert
+  gen_encryption_key
 }
 
 gen_conf() {
   gen_etcd_conf
-  gen_common
+  gen_common_conf
   gen_kube_apiserver_conf
   gen_kube_controller_manager_conf
   gen_kube_scheduler_conf
   gen_kube_service_account_conf
-  gen_encryption_key
   gen_deploy_script
 }
 

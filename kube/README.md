@@ -42,7 +42,7 @@ $ ./x-helper.sh gen_ca && ./x-helper.sh gen_all
 $ ./x-helper.sh download_all
 ```
 
-3.Prepare files to upload to your server
+3.Prepare all required software to upload to your server
 
 ```bash
 $ ./x-helper.sh prepare_bin_all
@@ -68,18 +68,10 @@ $ ./x-helper.sh config_local_kubectl
 
 ### Configuration Update
 
-1.Edit `env.sh` with your favourite editor
-
-2.Generate certificates and kubeconfig
+1. Edit `env.sh` with your favourite editor, then generate, upload configurations to your servers and deploy
 
 ```bash
-$ ./x-helper.sh gen_all
-```
-
-3.Upload all configurations files to your server and deploy with `redeploy_all`
-
-```bash
-$ ./x-helper.sh redeploy_all
+$ ./x-helper.sh update_conf
 ```
 
 __NOTE:__ these steps won't generate new CA, so you don't need to config local `kubectl`

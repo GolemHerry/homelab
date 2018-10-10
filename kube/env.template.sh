@@ -8,6 +8,11 @@
 #
 #
 
+# local physical network related
+export HOMELAB_GW="172.16.0.1"
+export HOMELAB_NET_PREFIX_LEN="24"
+export HOMELAB_DNS_SRV="172.16.0.1"
+
 export KUBE_PUB_ADDR="10.0.0.10"
 export KUBE_API_SERVER_PORT="6443"
 
@@ -43,6 +48,7 @@ export CTRL_SSH_USER_PASS_LIST=("my_password")
 
 # items in WORKER_LIST MUST be identical with worker hostnames
 export WORKER_LIST=("my-kube-worker-1" "my-kube-worker-2" "my-kube-worker-3")
+export WORKER_NET_IFACE=("ens160" "ens160" "ens160" "ens160")
 export WORKER_INTERN_IP_LIST=("10.0.0.1" "10.0.0.2" "10.0.0.3")
 export WORKER_EXTERN_IP_LIST=("10.0.0.1" "10.0.0.2" "10.0.0.3")
 export WORKER_POD_CIDR_LIST=("10.100.0.0/24" "10.100.0.0/24" "10.100.0.0/24")

@@ -59,10 +59,8 @@ EOF
   rm -f ${CERT_CSR_CFG} ${AGGREGATOR_CA_CERT_CSR_CFG}
 }
 
-# generate and sign cert for kube admin user
-gen_admin_conf() {
+gen_admin_cert() {
   CERT_CSR_CFG=${GEN_DIR}/csr-admin.json
-
   cat > ${CERT_CSR_CFG} <<EOF
 {
   "CN": "admin",
@@ -87,7 +85,10 @@ EOF
     ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/admin
   
   rm -f ${CERT_CSR_CFG}
+}
 
+# generate and sign cert for kube admin user
+gen_admin_conf() {
   kubectl config set-cluster ${CLUSTER_NAME} \
     --certificate-authority=${GEN_DIR}/ca.pem \
     --embed-certs=true \
@@ -107,6 +108,10 @@ EOF
 
   kubectl config use-context ${CONTEXT_NAME} \
     --kubeconfig=${GEN_DIR}/admin.kubeconfig
+}
+
+gen_cert() {
+  gen_admin_cert
 }
 
 gen_conf() {

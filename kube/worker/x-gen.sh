@@ -109,6 +109,35 @@ WantedBy=multi-user.target
 EOF
 }
 
+gen_kube_porxy_cert() {
+  CERT_CSR_CFG=${GEN_DIR}/csr-${COMP_KUBE_PROXY}.json
+  cat > ${CERT_CSR_CFG} <<EOF
+{
+  "CN": "system:${COMP_KUBE_PROXY}",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [{
+    "C": "${CERT_COUNTRY}",
+    "L": "${CERT_LOCATION}",
+    "O": "system:node-proxier",
+    "OU": "${CERT_ORG_UNIT}",
+    "ST": "${CERT_STATE}"
+  }]
+}
+EOF
+
+  cfssl gencert \
+    -ca=${CA_GEN_DIR}/ca.pem \
+    -ca-key=${CA_GEN_DIR}/ca-key.pem \
+    -config=${CA_DIR}/ca-config.json \
+    -profile=kubernetes \
+    ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/${COMP_KUBE_PROXY}
+
+  rm -f ${CERT_CSR_CFG}
+}
+
 gen_kube_proxy_conf() {
   CFG_KUBE_PROXY=${GEN_DIR}/${COMP_KUBE_PROXY}-config.yaml
   cat > ${CFG_KUBE_PROXY} <<EOF
@@ -137,33 +166,6 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-  CERT_CSR_CFG=${GEN_DIR}/csr-${COMP_KUBE_PROXY}.json
-  cat > ${CERT_CSR_CFG} <<EOF
-{
-  "CN": "system:${COMP_KUBE_PROXY}",
-  "key": {
-    "algo": "rsa",
-    "size": 2048
-  },
-  "names": [{
-    "C": "${CERT_COUNTRY}",
-    "L": "${CERT_LOCATION}",
-    "O": "system:node-proxier",
-    "OU": "${CERT_ORG_UNIT}",
-    "ST": "${CERT_STATE}"
-  }]
-}
-EOF
-
-  cfssl gencert \
-    -ca=${CA_GEN_DIR}/ca.pem \
-    -ca-key=${CA_GEN_DIR}/ca-key.pem \
-    -config=${CA_DIR}/ca-config.json \
-    -profile=kubernetes \
-    ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/${COMP_KUBE_PROXY}
-
-  rm -f ${CERT_CSR_CFG}
-
   kubectl config set-cluster ${CLUSTER_NAME} \
       --certificate-authority=${CA_GEN_DIR}/ca.pem \
       --embed-certs=true \
@@ -185,23 +187,14 @@ EOF
       --kubeconfig=${GEN_DIR}/${COMP_KUBE_PROXY}.kubeconfig
 }
 
-gen_kubelet_conf() {
-  # Kubernetes uses a special-purpose authorization mode called Node Authorizer, 
-  # that specifically authorizes API requests made by Kubelets. 
-  # In order to be authorized by the Node Authorizer, 
-  # Kubelets must use a credential that identifies them as being in the system:nodes group, 
-  # with a username of system:node:<nodeName>
-
+gen_kubelet_cert() {
   for i in ${!WORKER_LIST[@]}
   do
-
     WORKER=${WORKER_LIST[${i}]}
-    POD_CIDR=${WORKER_POD_CIDR_LIST[${i}]}
     INTERN_IP=${WORKER_INTERN_IP_LIST[${i}]}
     EXTERN_IP=${WORKER_EXTERN_IP_LIST[${i}]}
 
     CERT_CSR_CFG=${GEN_DIR}/csr-${WORKER}.json
-
     cat > ${CERT_CSR_CFG} <<EOF
 {
   "CN": "system:node:${WORKER}",
@@ -219,39 +212,57 @@ gen_kubelet_conf() {
 }
 EOF
 
-  cfssl gencert \
-    -ca=${CA_GEN_DIR}/ca.pem \
-    -ca-key=${CA_GEN_DIR}/ca-key.pem \
-    -config=${CA_DIR}/ca-config.json \
-    -hostname=${WORKER},${EXTERN_IP},${INTERN_IP} \
-    -profile=kubernetes \
-    ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/${WORKER}
+    cfssl gencert \
+      -ca=${CA_GEN_DIR}/ca.pem \
+      -ca-key=${CA_GEN_DIR}/ca-key.pem \
+      -config=${CA_DIR}/ca-config.json \
+      -hostname=${WORKER},${EXTERN_IP},${INTERN_IP} \
+      -profile=kubernetes \
+      ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/${WORKER}
 
-  rm -f ${CERT_CSR_CFG}
+    rm -f ${CERT_CSR_CFG}
+  done
+}
 
-  # generate kubelet kubeconfig
-  kubectl config set-cluster ${CLUSTER_NAME} \
-      --certificate-authority=${CA_GEN_DIR}/ca.pem \
-      --embed-certs=true \
-      --server=https://${KUBE_PUB_ADDR}:${KUBE_API_SERVER_PORT} \
-      --kubeconfig=${GEN_DIR}/${WORKER}.kubeconfig
+gen_kubelet_conf() {
+  # Kubernetes uses a special-purpose authorization mode called Node Authorizer, 
+  # that specifically authorizes API requests made by Kubelets. 
+  # In order to be authorized by the Node Authorizer, 
+  # Kubelets must use a credential that identifies them as being in the system:nodes group, 
+  # with a username of system:node:<nodeName>
 
-  kubectl config set-credentials system:node:${WORKER} \
-      --client-certificate=${GEN_DIR}/${WORKER}.pem \
-      --client-key=${GEN_DIR}/${WORKER}-key.pem \
-      --embed-certs=true \
-      --kubeconfig=${GEN_DIR}/${WORKER}.kubeconfig
+  for i in ${!WORKER_LIST[@]}
+  do
 
-  kubectl config set-context ${CONTEXT_NAME} \
-      --cluster=${CLUSTER_NAME} \
-      --user=system:node:${WORKER} \
-      --kubeconfig=${GEN_DIR}/${WORKER}.kubeconfig
+    WORKER=${WORKER_LIST[${i}]}
+    POD_CIDR=${WORKER_POD_CIDR_LIST[${i}]}
+    INTERN_IP=${WORKER_INTERN_IP_LIST[${i}]}
+    EXTERN_IP=${WORKER_EXTERN_IP_LIST[${i}]}
+    IFACE=${WORKER_NET_IFACE[${i}]}
 
-  kubectl config use-context ${CONTEXT_NAME} \
-      --kubeconfig=${GEN_DIR}/${WORKER}.kubeconfig
-  
-  CFG_CNI_BRIDGE=${GEN_DIR}/${WORKER}-cni-bridge.json
-  cat > ${CFG_CNI_BRIDGE} <<EOF
+    # generate kubelet kubeconfig
+    kubectl config set-cluster ${CLUSTER_NAME} \
+        --certificate-authority=${CA_GEN_DIR}/ca.pem \
+        --embed-certs=true \
+        --server=https://${KUBE_PUB_ADDR}:${KUBE_API_SERVER_PORT} \
+        --kubeconfig=${GEN_DIR}/${WORKER}.kubeconfig
+
+    kubectl config set-credentials system:node:${WORKER} \
+        --client-certificate=${GEN_DIR}/${WORKER}.pem \
+        --client-key=${GEN_DIR}/${WORKER}-key.pem \
+        --embed-certs=true \
+        --kubeconfig=${GEN_DIR}/${WORKER}.kubeconfig
+
+    kubectl config set-context ${CONTEXT_NAME} \
+        --cluster=${CLUSTER_NAME} \
+        --user=system:node:${WORKER} \
+        --kubeconfig=${GEN_DIR}/${WORKER}.kubeconfig
+
+    kubectl config use-context ${CONTEXT_NAME} \
+        --kubeconfig=${GEN_DIR}/${WORKER}.kubeconfig
+    
+    CFG_CNI_BRIDGE=${GEN_DIR}/${WORKER}-cni-bridge.json
+    cat > ${CFG_CNI_BRIDGE} <<EOF
 {
   "cniVersion": "${VER_CNI}",
   "name": "bridge",
@@ -269,8 +280,8 @@ EOF
 }
 EOF
 
-  CFG_KUBELET=${GEN_DIR}/${WORKER}-kubelet.yaml
-  cat > ${CFG_KUBELET} <<EOF
+    CFG_KUBELET=${GEN_DIR}/${WORKER}-kubelet.yaml
+    cat > ${CFG_KUBELET} <<EOF
 kind: KubeletConfiguration
 apiVersion: kubelet.config.k8s.io/v1beta1
 authentication:
@@ -291,14 +302,47 @@ runtimeRequestTimeout: "15m"
 tlsCertFile: "/var/lib/kubelet/${WORKER}.pem"
 tlsPrivateKeyFile: "/var/lib/kubelet/${WORKER}-key.pem"
 EOF
+  
+  CFG_NET_ROUTE=""
+  for j in ${!WORKER_LIST[@]}
+  do
+    X_POD_CIDR=${WORKER_POD_CIDR_LIST[${j}]}
+    X_INTERN_IP=${WORKER_INTERN_IP_LIST[${j}]}
+
+    if [ ${X_INTERN_IP} = ${INTERN_IP} ]; then 
+      continue
+    else
+      CFG_NET_ROUTE=$(cat <<EOF
+      - to: ${X_POD_CIDR}
+        via: ${X_INTERN_IP}
+${CFG_NET_ROUTE}
+EOF
+)
+    fi
+  done
+
+  CFG_NETWORK=${GEN_DIR}/${WORKER}-network.yaml
+  cat > ${CFG_NETWORK} <<EOF
+network:
+  ethernets:
+    ${IFACE}:
+      addresses:
+      - ${INTERN_IP}/${HOMELAB_NET_PREFIX_LEN}
+      dhcp4: false
+      gateway4: ${HOMELAB_GW}
+      nameservers:
+        addresses:
+        - ${HOMELAB_DNS_SRV}
+        search: []
+      routes:
+${CFG_NET_ROUTE}
+  version: 2
+EOF
 
   DEPLOY_SCRIPT=${GEN_DIR}/${WORKER}-deploy.sh
   cat > ${DEPLOY_SCRIPT} <<EOF
 #!/bin/bash -x
 set -e
-
-apt-get update
-apt-get -y install socat conntrack ipset
 
 mkdir -p \\
   /etc/cni/net.d \\
@@ -309,51 +353,102 @@ mkdir -p \\
   /var/run/${COMP_KUBE_API_SERVER} \\
   /etc/containerd
 
-# decompress worker components
-tar xf worker-comp.tar.xz
+install_cert() {
+  # Install certs for kubelet and kube-apiserver client
+  mv ca.pem /var/lib/${COMP_KUBE_API_SERVER}/
+  mv ${WORKER}.pem ${WORKER}-key.pem /var/lib/kubelet/
+}
 
-tar xf crictl-v${VER_KUBE}-linux-amd64.tar.gz -C /usr/local/bin/
-tar xf cni-plugins-amd64-v${VER_CNI_PLUGINS}.tgz -C /opt/cni/bin/
-tar xf containerd-${VER_CONTAINERD}.linux-amd64.tar.gz -C /
+install_conf() {
+  # Install configurations for containerd
+  mv containerd.config.toml /etc/containerd/config.toml
+  mv containerd.service /etc/systemd/system/containerd.service
+  mv crictl.yaml /etc/crictl.yaml
 
-# Install bin
-mv runsc* runsc
-mv runc.amd64 runc
-chmod +x kubectl ${COMP_KUBE_PROXY} kubelet runc runsc
-mv kubectl ${COMP_KUBE_PROXY} kubelet runc runsc /usr/local/bin/
+  # Install configurations for cni
+  mv ${WORKER}-cni-bridge.json /etc/cni/net.d/10-bridge.conf
+  mv cni-loopback.json /etc/cni/net.d/99-loopback.conf
 
-# Install configurations for containerd
-mv containerd.config.toml /etc/containerd/config.toml
-mv containerd.service /etc/systemd/system/containerd.service
-mv crictl.yaml /etc/crictl.yaml
+  # Install configurations for kubelet
+  mv ${WORKER}.kubeconfig /var/lib/kubelet/kubeconfig
+  mv kubelet.service /etc/systemd/system/kubelet.service
+  mv ${WORKER}-kubelet.yaml /var/lib/kubelet/kubelet-config.yaml
 
-# Install configurations for cni
-mv ${WORKER}-cni-bridge.json /etc/cni/net.d/10-bridge.conf
-mv cni-loopback.json /etc/cni/net.d/99-loopback.conf
+  # Install configurations for kube-proxy
+  mv ${COMP_KUBE_PROXY}-config.yaml /var/lib/${COMP_KUBE_PROXY}/${COMP_KUBE_PROXY}-config.yaml
+  mv ${COMP_KUBE_PROXY}.service /etc/systemd/system/${COMP_KUBE_PROXY}.service
+  mv ${COMP_KUBE_PROXY}.kubeconfig /var/lib/${COMP_KUBE_PROXY}/kubeconfig
 
-# Install configurations for kubelet
-mv ${WORKER}.kubeconfig /var/lib/kubelet/kubeconfig
-mv kubelet.service /etc/systemd/system/kubelet.service
-mv ${WORKER}-kubelet.yaml /var/lib/kubelet/kubelet-config.yaml
+  # Install configurations for network
+  mv ${WORKER}-network.yaml /etc/netplan/50-cloud-init.yaml
+  mv sysctl.conf /etc/sysctl.conf
+}
 
-# Install configurations for kube-proxy
-mv ${COMP_KUBE_PROXY}-config.yaml /var/lib/${COMP_KUBE_PROXY}/${COMP_KUBE_PROXY}-config.yaml
-mv ${COMP_KUBE_PROXY}.service /etc/systemd/system/${COMP_KUBE_PROXY}.service
-mv ${COMP_KUBE_PROXY}.kubeconfig /var/lib/${COMP_KUBE_PROXY}/kubeconfig
+install_bin() {
+  apt-get update
+  apt-get -y install socat conntrack ipset
 
-# Install certs for kubelet and kube-apiserver client
-mv ca.pem /var/lib/${COMP_KUBE_API_SERVER}/
-mv ${WORKER}*.pem /var/lib/kubelet/
+  # decompress worker components
+  tar xf worker-comp.tar.xz
+  tar xf crictl-v${VER_KUBE}-linux-amd64.tar.gz -C /usr/local/bin/
+  tar xf cni-plugins-amd64-v${VER_CNI_PLUGINS}.tgz -C /opt/cni/bin/
+  tar xf containerd-${VER_CONTAINERD}.linux-amd64.tar.gz -C /
 
-systemctl daemon-reload
-systemctl enable containerd kubelet ${COMP_KUBE_PROXY}
-systemctl restart containerd kubelet ${COMP_KUBE_PROXY}
+  # Install bin
+  mv runsc* runsc
+  mv runc.amd64 runc
+  chmod +x kubectl ${COMP_KUBE_PROXY} kubelet runc runsc
+  mv kubectl ${COMP_KUBE_PROXY} kubelet runc runsc /usr/local/bin/
+}
 
-printf "\n\nDeploy ${WORKER} Success\n"
+reload() {
+  netplan apply
+  systemctl daemon-reload
+  systemctl enable containerd kubelet ${COMP_KUBE_PROXY}
+  systemctl restart containerd kubelet ${COMP_KUBE_PROXY}
+}
+
+deploy_cert() {
+  install_cert
+  reload
+
+  printf "\n\nDeploy ${WORKER} Cert Success\n"
+}
+
+deploy_conf() {
+  install_conf
+  reload
+
+  printf "\n\nDeploy ${WORKER} Config Success\n"
+}
+
+deploy_bin() {
+  install_bin
+  reload
+
+  printf "\n\nDeploy ${WORKER} Bin Success\n"
+}
+
+deploy_all() {
+  install_bin
+  install_cert
+  install_conf
+  reload
+
+  printf "\n\nDeploy ${WORKER} All Success\n"
+}
+
+\$@
+
 EOF
     chmod +x ${DEPLOY_SCRIPT}
 
   done
+}
+
+gen_cert() {
+  gen_kubelet_cert
+  gen_kube_porxy_cert
 }
 
 gen_conf() {
