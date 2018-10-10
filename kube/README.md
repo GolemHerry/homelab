@@ -82,11 +82,42 @@ $ ./x-helper.sh gen_all
 $ ./x-helper.sh redeploy_all
 ```
 
-__NOTE:__ these steps won't generate new CA, so you don't need to
+__NOTE:__ these steps won't generate new CA, so you don't need to config local `kubectl`
 
 ### Network
+
+// TODO
+
+### Services
+
+#### Fundamental Services
+
+1.Install kube-dns (coredns)
+
+```bash
+$ kubectl create -f services/kube-coredns
+```
+
+2.Install metric-server
+
+```bash
+$ kubectl create -f services/kube-metric-server
+```
+
+3.Install kube-dashboard
+
+```bash
+$ kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
+# in China, you should use aliyun google container mirror
+# `kubectl create -f services/kube-dashboard`
+
+# (optional and not recommended)
+# skip dashborad authentication (click `skip` on dashboard login page)
+# $ kubectl create -f services/kube-dashboard/dashoard-admin.yaml
+```
 
 ## References
 
 - [Creating a Custom Cluster from Scratch](https://kubernetes.io/docs/setup/scratch)
 - [kelseyhightower/kubernetes-the-hard-way](https://github.com/kelseyhightower/kubernetes-the-hard-way)
+- [Troubleshooting Kubernetes Networking Issues](https://gravitational.com/blog/troubleshooting-kubernetes-networking/)

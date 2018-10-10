@@ -28,7 +28,35 @@ EOF
 
   cfssl gencert -initca ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/ca
   
-  rm -f ${CERT_CSR_CFG}
+  AGGREGATOR_CA_CERT_CSR_CFG=${GEN_DIR}/csr-client-ca.json
+  cat > ${AGGREGATOR_CA_CERT_CSR_CFG} <<EOF
+{
+  "CN": "aggregator",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [{
+    "C": "${CERT_COUNTRY}",
+    "L": "${CERT_LOCATION}",
+    "O": "aggregator",
+    "OU": "${CERT_ORG_UNIT}",
+    "ST": "${CERT_STATE}"
+  }]
+}
+EOF
+
+  cfssl gencert -initca ${AGGREGATOR_CA_CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/ca-aggregator
+
+  # generate cert for aggregator
+  cfssl gencert \
+    -ca=${GEN_DIR}/ca-aggregator.pem \
+    -ca-key=${GEN_DIR}/ca-aggregator-key.pem \
+    -config=ca-config.json \
+    -profile=kubernetes \
+    ${AGGREGATOR_CA_CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/aggregator-proxy-client
+
+  rm -f ${CERT_CSR_CFG} ${AGGREGATOR_CA_CERT_CSR_CFG}
 }
 
 # generate and sign cert for kube admin user

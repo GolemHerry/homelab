@@ -25,8 +25,9 @@ upload_bin() {
     SSH_ID=${CTRL_SSH_ID_LIST[${i}]}
     USER=${CTRL_SSH_USER_LIST[${i}]}
 
-    scp -P ${SSH_PORT} -i ${SSH_ID} ${TO_UPLOAD} ${USER}@${SSH_ADDR}:~/
+    scp -P ${SSH_PORT} -i ${SSH_ID} ${TO_UPLOAD} ${USER}@${SSH_ADDR}:~/ &
   done
+  wait
 }
 
 upload_cfg() {
@@ -54,8 +55,9 @@ upload_cfg() {
       ${GEN_DIR}/healthcheck.nginx \
       ${GEN_DIR}/RBAC-*.yaml"
 
-    scp -P ${SSH_PORT} -i ${SSH_ID} ${TO_UPLOAD} ${USER}@${SSH_ADDR}:~/
+    scp -P ${SSH_PORT} -i ${SSH_ID} ${TO_UPLOAD} ${USER}@${SSH_ADDR}:~/ &
   done
+  wait
 }
 
 $@

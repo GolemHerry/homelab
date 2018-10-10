@@ -131,7 +131,7 @@ EOF
     -ca=${CA_GEN_DIR}/ca.pem \
     -ca-key=${CA_GEN_DIR}/ca-key.pem \
     -config=${CA_DIR}/ca-config.json \
-    -hostname=${WORKER_ADDR_LIST},${CTRL_ADDR_LIST},${KUBE_PUB_ADDR},${GATEWAY_ADDR},127.0.0.1,kubernetes.default \
+    -hostname=${WORKER_ADDR_LIST},${CTRL_ADDR_LIST},${KUBE_PUB_ADDR},${KUBE_SERVICE_CLUSTER_GW_ADDR},127.0.0.1,kubernetes.default \
     -profile=kubernetes \
     ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/${COMP_KUBE_API_SERVER}
 
@@ -158,6 +158,13 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --authorization-mode=Node,RBAC \\
   --bind-address=0.0.0.0 \\
   --client-ca-file=/var/lib/${COMP_KUBE_API_SERVER}/ca.pem \\
+  --requestheader-client-ca-file=/var/lib/${COMP_KUBE_API_SERVER}/ca-aggregator.pem \\
+  --proxy-client-cert-file=/var/lib/${COMP_KUBE_API_SERVER}/aggregator-proxy-client.pem \\
+  --proxy-client-key-file=/var/lib/${COMP_KUBE_API_SERVER}/aggregator-proxy-client-key.pem \\
+  --requestheader-allowed-names= \\
+  --requestheader-extra-headers-prefix=X-Remote-Extra- \\
+  --requestheader-group-headers=X-Remote-Group \\
+  --requestheader-username-headers=X-Remote-User \\
   --enable-admission-plugins=Initializers,NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
   --enable-swagger-ui=true \\
   --etcd-cafile=/var/lib/${COMP_KUBE_API_SERVER}/ca.pem \\
@@ -389,6 +396,7 @@ cp ca.pem ${COMP_KUBE_API_SERVER}*.pem /etc/etcd/
 mv ca*.pem \\
   ${COMP_KUBE_API_SERVER}*.pem \\
   ${COMP_KUBE_SERVICE_ACCOUNT}*.pem \\
+  aggregator-proxy-client*.pem \\
   encryption-config.yaml \\
   /var/lib/${COMP_KUBE_API_SERVER}/
 

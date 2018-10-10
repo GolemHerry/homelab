@@ -25,8 +25,9 @@ upload_bin() {
     SSH_ID=${WORKER_SSH_ID_LIST[${i}]}
     USER=${WORKER_SSH_USER_LIST[${i}]}
 
-    scp -P ${SSH_PORT} -i ${SSH_ID} ${TO_UPLOAD} ${USER}@${SSH_ADDR}:~/
+    scp -P ${SSH_PORT} -i ${SSH_ID} ${TO_UPLOAD} ${USER}@${SSH_ADDR}:~/ &
   done
+  wait
 }
 
 upload_cfg() {
@@ -53,8 +54,9 @@ upload_cfg() {
       ${GEN_DIR}/${WORKER}-cni-bridge.json \
       ${GEN_DIR}/${WORKER}-deploy.sh"
 
-    scp -P ${SSH_PORT} -i ${SSH_ID} ${TO_UPLOAD} ${USER}@${SSH_ADDR}:~/
+    scp -P ${SSH_PORT} -i ${SSH_ID} ${TO_UPLOAD} ${USER}@${SSH_ADDR}:~/ &
   done
+  wait
 }
 
 $@

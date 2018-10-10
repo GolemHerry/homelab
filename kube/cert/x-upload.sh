@@ -7,7 +7,10 @@ _KUBE_DIR=..
 source ${_KUBE_DIR}/env.sh
 
 upload_to_controllers() {
-  TO_UPLOAD="${GEN_DIR}/ca*.pem ${GEN_DIR}/admin.kubeconfig"
+  TO_UPLOAD="${GEN_DIR}/ca*.pem \
+             ${GEN_DIR}/admin.kubeconfig \
+             ${GEN_DIR}/ca-aggregator*.pem \
+             ${GEN_DIR}/aggregator-proxy-client*.pem"
   
   # send to controllers
   for i in ${!CTRL_LIST[@]}

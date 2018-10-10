@@ -24,6 +24,8 @@ export KUBE_SERVICE_IP_RANGE="10.32.0.0/24"
 # dns server is a service, so in range 10.
 export CLUSTER_DNS_SERVER="10.10.0.254"
 
+export KUBE_SERVICE_CLUSTER_GW_ADDR="10.0.0.1"
+
 export KUBE_NODE_PORT_RANGE="30000-32767"
 
 export CLUSTER_NAME="kubernetes-the-hard-way"
@@ -86,12 +88,16 @@ export WORKER_ADDR_LIST=""
 export CTRL_ADDR_LIST""
 export ETCD_INITIAL_CLUSTERS=""
 export ETCD_SERVERS=""
+export IP_ROUTE_CMD=""
 
-for i in ${!WORKER_INTERN_IP_LIST[@]}
+for i in ${!WORKER_LIST[@]}
 do
 INTERN_IP=${WORKER_INTERN_IP_LIST[${i}]}
 EXTERN_IP=${WORKER_EXTERN_IP_LIST[${i}]}
+POD_CIDR=${WORKER_POD_CIDR_LIST[$i]}
+
 export WORKER_ADDR_LIST="${INTERN_IP},${EXTERN_IP},${WORKER_ADDR_LIST}"
+export IP_ROUTE_CMD="ip route add ${POD_CIDR} via ${INTERN_IP}\n${IP_ROUTE_CMD}"
 done
 
 for i in ${!CTRL_INTERN_IP_LIST[@]}

@@ -9,6 +9,18 @@ CA_DIR=${_KUBE_DIR}/cert
 CA_GEN_DIR=${_KUBE_DIR}/cert/${GEN_DIR}
 
 gen_static_config() {
+  CFG_SYSCTL=${GEN_DIR}/sysctl.conf
+  cat > ${CFG_SYSCTL} <<EOF
+# 
+# /etc/sysctl.conf - Configuration file for setting system variables
+# See /etc/sysctl.d/ for additional system variables.
+# See sysctl.conf (5) for information.
+
+# enable packet forwarding for IPv4
+net.ipv4.ip_forward=1
+# enable iptables rules to work on Linux bridges
+net.bridge.bridge-nf-call-iptables=1
+EOF
   CFG_CRICTL=${GEN_DIR}/crictl.yaml
   cat > ${CFG_CRICTL} <<EOF
 runtime-endpoint: unix:///run/containerd/containerd.sock
@@ -115,6 +127,7 @@ Description=Kubernetes Kube Proxy
 Documentation=https://github.com/kubernetes/kubernetes
 
 [Service]
+ExecStartPre=/sbin/modprobe br_netfilter
 ExecStart=/usr/local/bin/${COMP_KUBE_PROXY} \\
   --config=/var/lib/${COMP_KUBE_PROXY}/${COMP_KUBE_PROXY}-config.yaml
 Restart=on-failure
