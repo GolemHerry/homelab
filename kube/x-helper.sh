@@ -26,10 +26,9 @@ gen_conf() {
   for T in ${TARGETS[@]}
   do
     pushd ${T}
-      ./x-gen.sh gen_conf &
+      ./x-gen.sh gen_conf
     popd
   done
-  wait
 }
 
 gen_all() {
@@ -106,7 +105,7 @@ deploy_controllers() {
     SSH_ID=${CTRL_SSH_ID_LIST[${i}]}
     USER=${CTRL_SSH_USER_LIST[${i}]}
     PASS=${CTRL_SSH_USER_PASS_LIST[${i}]}
-    echo $1
+
     printf "\n\nDeploying Controller: ${CTRL}\n\n\n"
     ssh -p ${SSH_PORT} -i ${SSH_ID} ${USER}@${SSH_ADDR} \
       "echo ${PASS} | sudo -S bash ~/${CTRL}-deploy.sh $1" &
@@ -172,8 +171,9 @@ deploy_all() {
 update_conf() {
   gen_conf
   upload_conf_all
-  deploy_controllers_conf
-  deploy_workers_conf
+  deploy_controllers_conf &
+  deploy_workers_conf &
+  wait
 }
 
 reboot_controllers() {

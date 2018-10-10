@@ -12,13 +12,13 @@ CA_GEN_DIR=${_KUBE_DIR}/cert/${GEN_DIR}
 gen_etcd_conf() {
   for i in ${!CTRL_LIST[@]}
   do
-    CONTROLLER=${CTRL_LIST[${i}]}
+    CTRL=${CTRL_LIST[${i}]}
     INTERN_IP=${CTRL_INTERN_IP_LIST[${i}]}
-    ETCD_NAME=etcd-${CONTROLLER}
+    ETCD_NAME=etcd-${CTRL}
     C_PORT=${KUBE_ETCD_LISTEN_CLIENT_PORT}
     P_PORT=${KUBE_ETCD_LISTEN_PEER_PORT}
 
-    cat > ${GEN_DIR}/${CONTROLLER}.etcd.service <<EOF
+    cat > ${GEN_DIR}/${CTRL}.etcd.service <<EOF
 # filename: /etc/systemd/system/etcd.service
 [Unit]
 Description=etcd
@@ -145,9 +145,9 @@ EOF
 gen_kube_apiserver_conf() {
   for i in ${!CTRL_LIST[@]}
   do
-    CONTROLLER=${CTRL_LIST[${i}]}
+    CTRL=${CTRL_LIST[${i}]}
     INTERN_IP=${CTRL_INTERN_IP_LIST[${i}]}
-    cat > ${GEN_DIR}/${CONTROLLER}-kube-apiserver.service <<EOF
+    cat > ${GEN_DIR}/${CTRL}-kube-apiserver.service <<EOF
 [Unit]
 Description=Kubernetes API Server
 Documentation=https://github.com/kubernetes/kubernetes
@@ -376,8 +376,43 @@ EOF
 
   for i in ${!CTRL_LIST[@]}
   do
-    CONTROLLER=${CTRL_LIST[${i}]}
-    SCRIPT=${GEN_DIR}/${CONTROLLER}-deploy.sh
+    CTRL=${CTRL_LIST[${i}]}
+
+    INTERN_IP=${CTRL_INTERN_IP_LIST[${i}]}
+    IFACE=${CTRL_NET_IFACE_LIST[${i}]}
+
+    CFG_NET_ROUTE=""
+      for j in ${!WORKER_LIST[@]}
+      do
+        W_POD_CIDR=${WORKER_POD_CIDR_LIST[${j}]}
+        W_INTERN_IP=${WORKER_INTERN_IP_LIST[${j}]}
+        CFG_NET_ROUTE=$(cat <<EOF
+      - to: ${W_POD_CIDR}
+        via: ${W_INTERN_IP}
+${CFG_NET_ROUTE}
+EOF
+)
+  done
+
+  CFG_NETWORK=${GEN_DIR}/${CTRL}-network.yaml
+  cat > ${CFG_NETWORK} <<EOF
+network:
+  ethernets:
+    ${IFACE}:
+      addresses:
+      - ${INTERN_IP}/${HOMELAB_NET_PREFIX_LEN}
+      dhcp4: false
+      gateway4: ${HOMELAB_GW}
+      nameservers:
+        addresses:
+        - ${HOMELAB_DNS_SRV}
+        search: []
+      routes:
+${CFG_NET_ROUTE}
+  version: 2
+EOF
+
+    SCRIPT=${GEN_DIR}/${CTRL}-deploy.sh
     cat > ${SCRIPT} <<EOF
 #!/bin/bash
 set -e
@@ -402,10 +437,10 @@ install_cert() {
 
 install_conf() {
   # Install Systemd Configurations
-  mv ${CONTROLLER}-kube-apiserver.service /etc/systemd/system/kube-apiserver.service
+  mv ${CTRL}-kube-apiserver.service /etc/systemd/system/kube-apiserver.service
   mv ${COMP_KUBE_CTRL_MGR}.service /etc/systemd/system/${COMP_KUBE_CTRL_MGR}.service
   mv ${COMP_KUBE_SCHEDULER}.service /etc/systemd/system/${COMP_KUBE_SCHEDULER}.service
-  mv ${CONTROLLER}.etcd.service /etc/systemd/system/etcd.service
+  mv ${CTRL}.etcd.service /etc/systemd/system/etcd.service
 
   # Install Kube Configurations
   mv ${COMP_KUBE_SCHEDULER}.kubeconfig /var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_SCHEDULER}.kubeconfig
@@ -416,6 +451,8 @@ install_conf() {
   mv healthcheck.nginx /etc/nginx/sites-available/kubernetes.default.svc.cluster.local
   rm -f /etc/nginx/sites-enabled/kubernetes.default.svc.cluster.local
   ln -s /etc/nginx/sites-available/kubernetes.default.svc.cluster.local /etc/nginx/sites-enabled/
+
+  mv ${CTRL}-network.yaml /etc/netplan/50-cloud-init.yaml
 }
 
 apply_rbac() {
@@ -441,10 +478,11 @@ install_bin() {
   chmod +x kubectl kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
   mv kubectl kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER} /usr/local/bin/
   
-  rm etcd-v${VER_ETCD}-linux-amd64
+  rm -rf etcd-v${VER_ETCD}-linux-amd64
 }
 
 reload() {
+  netplan apply
   systemctl daemon-reload
   systemctl enable etcd nginx kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
   systemctl restart nginx etcd kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
@@ -452,25 +490,33 @@ reload() {
 
 deploy_cert() {
   install_cert
+
+  ETCDCTL_API=3 etcdctl del --prefix / \\
+    --endpoints=https://${INTERN_IP}:${KUBE_ETCD_LISTEN_CLIENT_PORT} \\
+    --cacert=/etc/etcd/ca.pem \\
+    --cert=/etc/etcd/kubernetes.pem \\
+    --key=/etc/etcd/kubernetes-key.pem
+
   reload
+
+  echo "Waiting For Kubernetes-APIServer (15s)"
+  sleep 15
+
+  apply_rbac
 }
 
 deploy_conf() {
   install_conf
   reload
 
-  echo "Waiting For Kubernetes-APIServer (15s)"
-  sleep 15
-  apply_rbac
-
-  printf "\n\nDeploy ${CONTROLLER} Config Success\n"
+  printf "\n\nDeploy ${CTRL} Config Success\n"
 }
 
 deploy_bin() {
   install_bin
   reload
 
-  printf "\n\nDeploy ${CONTROLLER} Bin Success\n"
+  printf "\n\nDeploy ${CTRL} Bin Success\n"
 }
 
 deploy_all() {
@@ -483,7 +529,7 @@ deploy_all() {
   sleep 15
   apply_rbac
 
-  printf "\n\nDeploy ${CONTROLLER} All Success\n"
+  printf "\n\nDeploy ${CTRL} All Success\n"
 }
 
 \$@

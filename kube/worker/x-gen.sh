@@ -238,7 +238,7 @@ gen_kubelet_conf() {
     POD_CIDR=${WORKER_POD_CIDR_LIST[${i}]}
     INTERN_IP=${WORKER_INTERN_IP_LIST[${i}]}
     EXTERN_IP=${WORKER_EXTERN_IP_LIST[${i}]}
-    IFACE=${WORKER_NET_IFACE[${i}]}
+    IFACE=${WORKER_NET_IFACE_LIST[${i}]}
 
     # generate kubelet kubeconfig
     kubectl config set-cluster ${CLUSTER_NAME} \

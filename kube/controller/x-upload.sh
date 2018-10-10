@@ -71,6 +71,7 @@ upload_conf() {
       ${GEN_DIR}/${CTRL}-kube-apiserver.service \
       ${GEN_DIR}/${CTRL}.etcd.service \
       ${GEN_DIR}/healthcheck.nginx \
+      ${GEN_DIR}/${CTRL}-network.yaml \
       ${GEN_DIR}/${CTRL}-deploy.sh"
 
     scp -P ${SSH_PORT} -i ${SSH_ID} ${TO_UPLOAD} ${USER}@${SSH_ADDR}:~/ &

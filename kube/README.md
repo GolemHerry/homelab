@@ -36,31 +36,19 @@ $ cp env.template.sh env.sh
 $ ./x-helper.sh gen_ca && ./x-helper.sh gen_all
 ```
 
-2.Download all software required
+2.Download all software required and prepare them for uploading
 
 ```bash
-$ ./x-helper.sh download_all
+$ ./x-helper.sh download_all && ./x-helper.sh prepare_bin_all
 ```
 
-3.Prepare all required software to upload to your server
+3.Upload all required files to your server, then deploy them
 
 ```bash
-$ ./x-helper.sh prepare_bin_all
+$ ./x-helper.sh upload_all && ./x-helper.sh deploy_all
 ```
 
-4.Upload all required files to your server
-
-```bash
-$ ./x-helper.sh upload_all
-```
-
-5.Deploy `Kubernetes` to your server
-
-```bash
-$ ./x-helper.sh deploy_all
-```
-
-6.Config local `kubectl`
+4.Config local `kubectl`
 
 ```bash
 $ ./x-helper.sh config_local_kubectl
@@ -73,12 +61,6 @@ $ ./x-helper.sh config_local_kubectl
 ```bash
 $ ./x-helper.sh update_conf
 ```
-
-__NOTE:__ these steps won't generate new CA, so you don't need to config local `kubectl`
-
-### Network
-
-// TODO
 
 ### Services
 
@@ -100,10 +82,11 @@ $ kubectl create -f services/kube-metric-server
 
 ```bash
 $ kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
-# in China, you should use aliyun google container mirror
-# `kubectl create -f services/kube-dashboard`
 
-# (optional and not recommended)
+# in China, you can use aliyun google container mirror
+# $ kubectl create -f services/kube-dashboard/kube-dashboard.cn.yaml
+
+# (optional, not recommended)
 # skip dashborad authentication (click `skip` on dashboard login page)
 # $ kubectl create -f services/kube-dashboard/dashoard-admin.yaml
 ```

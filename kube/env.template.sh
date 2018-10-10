@@ -38,6 +38,7 @@ export CONTEXT_NAME="default"
 
 # CTRL_LIST is not restricted by controller hostnames
 export CTRL_LIST=("my-kube-ctrl")
+export CTRL_NET_IFACE_LIST=("ens160")
 export CTRL_INTERN_IP_LIST=("10.0.0.10")
 export CTRL_EXTERN_IP_LIST=("10.0.0.10")
 export CTRL_SSH_PORT_LIST=("22")
@@ -48,7 +49,7 @@ export CTRL_SSH_USER_PASS_LIST=("my_password")
 
 # items in WORKER_LIST MUST be identical with worker hostnames
 export WORKER_LIST=("my-kube-worker-1" "my-kube-worker-2" "my-kube-worker-3")
-export WORKER_NET_IFACE=("ens160" "ens160" "ens160" "ens160")
+export WORKER_NET_IFACE_LIST=("ens160" "ens160" "ens160" "ens160")
 export WORKER_INTERN_IP_LIST=("10.0.0.1" "10.0.0.2" "10.0.0.3")
 export WORKER_EXTERN_IP_LIST=("10.0.0.1" "10.0.0.2" "10.0.0.3")
 export WORKER_POD_CIDR_LIST=("10.100.0.0/24" "10.100.0.0/24" "10.100.0.0/24")
