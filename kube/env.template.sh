@@ -8,8 +8,10 @@
 #
 #
 
+# In this template, 172.16.0.0/24 represents your physical network
+
 # local physical network related
-export HOMELAB_GW="172.16.0.1"
+export HOMELAB_GW_IPV4="172.16.0.1"
 export HOMELAB_NET_PREFIX_LEN="24"
 export HOMELAB_DNS_SRV="172.16.0.1"
 
@@ -80,8 +82,9 @@ export COMP_KUBE_SCHEDULER="kube-scheduler"
 export COMP_KUBE_CTRL_MGR="kube-controller-manager"
 export COMP_KUBE_PROXY="kube-proxy"
 
-export VER_KUBE="1.12.0"
-export VER_ETCD="3.2.24"
+export VER_KUBE="1.12.1"
+export VER_ETCD="3.3.10"
+export VER_CRICTL="1.12.0"
 export VER_RUNC="1.0.0-rc5"
 export VER_RUNSC=""
 export VER_CONTAINERD="1.2.0-rc.0"

@@ -6,13 +6,9 @@ _KUBE_DIR=..
 
 source ${_KUBE_DIR}/env.sh
 
-URL_CRICTL="https://github.com/kubernetes-sigs/cri-tools/releases/download/v${VER_KUBE}/crictl-v${VER_KUBE}-linux-amd64.tar.gz"
-
-URL_KUBE_PROXY="https://storage.googleapis.com/kubernetes-release/release/v${VER_KUBE}/bin/linux/amd64/kube-proxy"
+URL_CRICTL="https://github.com/kubernetes-sigs/cri-tools/releases/download/v${VER_CRICTL}/crictl-v${VER_CRICTL}-linux-amd64.tar.gz"
 
 URL_KUBELET="https://storage.googleapis.com/kubernetes-release/release/v${VER_KUBE}/bin/linux/amd64/kubelet"
-
-URL_KUBECTL="https://storage.googleapis.com/kubernetes-release/release/v${VER_KUBE}/bin/linux/amd64/kubectl"
 
 URL_RUNC="https://github.com/opencontainers/runc/releases/download/v${VER_RUNC}/runc.amd64"
 
@@ -26,7 +22,6 @@ mkdir -p ${DOWNLOAD_DIR}
 
 pushd ${DOWNLOAD_DIR}
 wget -q --show-progress --https-only --timestamping \
-  "${URL_CRICTL}" "${URL_KUBE_PROXY}" "${URL_KUBELET}" \
-  "${URL_RUNC}" "${URL_RUNSC}" "${URL_CONTAINERD}" \
-  "${URL_CNI_PLUGINS}" "${URL_KUBECTL}"
+  "${URL_CRICTL}" "${URL_KUBELET}" "${URL_RUNC}" "${URL_RUNSC}" \
+  "${URL_CONTAINERD}" "${URL_CNI_PLUGINS}"
 popd

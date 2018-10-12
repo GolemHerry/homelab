@@ -1,24 +1,28 @@
-# Kubernetes Controller
+# Controller
 
-## Prerequisite
+Controller related
 
-- Etcd services
-
-## Componenets
+## Generated File list
 
 - kube-apiserver
     - related files
-        - kube-ca-cert.pem, kube-ca-key.pem
-        - kube-api-cert.pem, kube-api-key.pem
-        - kube-service-account-cert.pem, kube-service-account-key.pem
-        - encryption-config.yaml
-        - kube-api.service
+        - kubernetes.pem, kubernetes-key.pem
+        - kube-service-account.pem, kube-service-account-key.pem
+            - kube-service-account.kubeconfig
+        - encryption-config.yaml (currently not used)
+        - ${CTRL_NAME}-kube-apiserver.service
 - kube-controller-manager
     - related files
-        - kube-controller-manager.kubeconfig
+        - kube-controller-manager.pem, kube-controller-manager-key.pem
+            - kube-controller-manager.kubeconfig
         - kube-controller-manager.service
 - kube-scheduler
     - related files
-        - kube-scheduler.kubeconfig
+        - kube-scheduler.pem, kube-scheduler-key.pem
+            - kube-scheduler.kubeconfig
         - kube-scheduler.yaml
         - kube-scheduler.service
+- healthcheck.nginx
+- ${CTRL_NAME}-network.yaml
+- ${CTRL_NAME}.etcd.service
+- ${CTRL_NAME}-deploy.sh

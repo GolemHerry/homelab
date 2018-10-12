@@ -68,7 +68,7 @@ upload_conf() {
       ${GEN_DIR}/containerd.config.toml \
       ${GEN_DIR}/containerd.service \
       ${GEN_DIR}/crictl.yaml \
-      ${GEN_DIR}/sysctl.conf \
+      ${GEN_DIR}/kube-sysctl.conf \
       ${GEN_DIR}/cni-loopback.json \
       ${GEN_DIR}/${WORKER}-cni-bridge.json \
       ${GEN_DIR}/${WORKER}-deploy.sh"

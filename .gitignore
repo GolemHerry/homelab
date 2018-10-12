@@ -1,5 +1,6 @@
 *.xml
+*.pem
 
 /cert
 /env.sh
-/vm/
+/vm

@@ -6,8 +6,8 @@ _KUBE_DIR=..
 
 source ${_KUBE_DIR}/env.sh
 
-CA_DIR=${_KUBE_DIR}/cert
-CA_GEN_DIR=${_KUBE_DIR}/cert/${GEN_DIR}
+CA_DIR=${_KUBE_DIR}/common
+CA_GEN_DIR=${_KUBE_DIR}/common/${GEN_DIR}
 
 gen_etcd_conf() {
   for i in ${!CTRL_LIST[@]}
@@ -178,7 +178,6 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --etcd-keyfile=/var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_API_SERVER}-key.pem \\
   --etcd-servers=${ETCD_SERVERS} \\
   --event-ttl=1h \\
-  --experimental-encryption-provider-config=/var/lib/${COMP_KUBE_API_SERVER}/encryption-config.yaml \\
   --kubelet-certificate-authority=/var/lib/${COMP_KUBE_API_SERVER}/ca.pem \\
   --kubelet-client-certificate=/var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_API_SERVER}.pem \\
   --kubelet-client-key=/var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_API_SERVER}-key.pem \\
@@ -190,6 +189,12 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --tls-cert-file=/var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_API_SERVER}.pem \\
   --tls-private-key-file=/var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_API_SERVER}-key.pem \\
   --v=2
+
+# 
+# currently, we will disable encryption, see https://github.com/kubernetes/kubernetes/issues/66844
+# 
+# --experimental-encryption-provider-config=/var/lib/${COMP_KUBE_API_SERVER}/encryption-config.yaml
+
 Restart=on-failure
 RestartSec=5
 
@@ -279,7 +284,7 @@ EOF
     -config=${CA_DIR}/ca-config.json \
     -profile=kubernetes \
     ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/${COMP_KUBE_SERVICE_ACCOUNT}
-  
+
   rm -f ${CERT_CSR_CFG}
 }
 
@@ -324,7 +329,7 @@ EOF
 
 gen_deploy_script() {
   cat > ${GEN_DIR}/RBAC-create.yaml <<EOF
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   annotations:
@@ -346,7 +351,7 @@ rules:
 EOF
 
   cat > ${GEN_DIR}/RBAC-bind.yaml <<EOF
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: system:kube-apiserver
@@ -401,8 +406,9 @@ network:
     ${IFACE}:
       addresses:
       - ${INTERN_IP}/${HOMELAB_NET_PREFIX_LEN}
-      dhcp4: false
-      gateway4: ${HOMELAB_GW}
+      dhcp4: no
+      dhcp6: no
+      gateway4: ${HOMELAB_GW_IPV4}
       nameservers:
         addresses:
         - ${HOMELAB_DNS_SRV}
@@ -420,6 +426,7 @@ set -e
 mkdir -p \\
   /etc/${COMP_KUBE_API_SERVER}/config \\
   /var/lib/${COMP_KUBE_API_SERVER}/ \\
+  /var/lib/kube-proxy \\
   /etc/etcd
 
 install_cert() {
@@ -447,12 +454,19 @@ install_conf() {
   mv ${COMP_KUBE_SCHEDULER}.yaml /etc/${COMP_KUBE_API_SERVER}/config/${COMP_KUBE_SCHEDULER}.yaml
   mv ${COMP_KUBE_CTRL_MGR}.kubeconfig /var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_CTRL_MGR}.kubeconfig
 
+  # Install configurations for kube-proxy
+  mv kube-proxy-config.yaml /var/lib/kube-proxy/kube-proxy-config.yaml
+  mv kube-proxy.service /etc/systemd/system/kube-proxy.service
+  mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
+
   # Setup Health Check
   mv healthcheck.nginx /etc/nginx/sites-available/kubernetes.default.svc.cluster.local
   rm -f /etc/nginx/sites-enabled/kubernetes.default.svc.cluster.local
   ln -s /etc/nginx/sites-available/kubernetes.default.svc.cluster.local /etc/nginx/sites-enabled/
-
+  
+  # Install configurations for network
   mv ${CTRL}-network.yaml /etc/netplan/50-cloud-init.yaml
+  mv kube-sysctl.conf /etc/sysctl.d/10-kube-sysctl.conf
 }
 
 apply_rbac() {
@@ -475,17 +489,18 @@ install_bin() {
   mv etcd-v${VER_ETCD}-linux-amd64/etcd* /usr/local/bin/
 
   # Install Kube Bin
-  chmod +x kubectl kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
-  mv kubectl kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER} /usr/local/bin/
+  chmod +x kubectl kube-apiserver kube-proxy ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
+  mv kubectl kube-apiserver kube-proxy ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER} /usr/local/bin/
   
   rm -rf etcd-v${VER_ETCD}-linux-amd64
 }
 
 reload() {
   netplan apply
+  sysctl -p
   systemctl daemon-reload
-  systemctl enable etcd nginx kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
-  systemctl restart nginx etcd kube-apiserver ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
+  systemctl enable etcd nginx kube-apiserver kube-proxy ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
+  systemctl restart nginx etcd kube-apiserver kube-proxy ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
 }
 
 deploy_cert() {
@@ -499,37 +514,47 @@ deploy_cert() {
 
   reload
 
-  echo "Waiting For Kubernetes-APIServer (15s)"
-  sleep 15
+  echo "Waiting For Kubernetes-APIServer (30s)"
+  sleep 30
 
   apply_rbac
+
+  echo "[DEPLOY] ${CTRL} cert success"
 }
 
 deploy_conf() {
   install_conf
   reload
 
-  printf "\n\nDeploy ${CTRL} Config Success\n"
+  echo "[DEPLOY] ${CTRL} config success"
 }
 
 deploy_bin() {
   install_bin
   reload
 
-  printf "\n\nDeploy ${CTRL} Bin Success\n"
+  echo "[DEPLOY] ${CTRL} bin success"
 }
 
 deploy_all() {
   install_bin
   install_cert
   install_conf
+
+  ETCDCTL_API=3 etcdctl del --prefix / \\
+    --endpoints=https://${INTERN_IP}:${KUBE_ETCD_LISTEN_CLIENT_PORT} \\
+    --cacert=/etc/etcd/ca.pem \\
+    --cert=/etc/etcd/kubernetes.pem \\
+    --key=/etc/etcd/kubernetes-key.pem
+
   reload
 
-  echo "Waiting For Kubernetes-APIServer (15s)"
-  sleep 15
+  echo "Waiting For Kubernetes-APIServer (30s)"
+  sleep 30
+
   apply_rbac
 
-  printf "\n\nDeploy ${CTRL} All Success\n"
+  echo "[DEPLOY] ${CTRL} all success"
 }
 
 \$@

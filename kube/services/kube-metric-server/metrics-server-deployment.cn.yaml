@@ -27,11 +27,25 @@ spec:
       # mount in tmp so we can safely use from-scratch images and/or read-only containers
       - name: tmp-dir
         emptyDir: {}
+      - name: ssl-dir
+        secret:
+          secretName: metrics-server-secrets
+          defaultMode: 0400
       containers:
       - name: metrics-server
-        image: registry.cn-hangzhou.aliyuncs.com/larus/metrics-server-amd64:v0.3.0
-        imagePullPolicy: Always
+        image: registry.cn-shanghai.aliyuncs.com/k8simage/metrics-server-amd64:v0.3.1
+        imagePullPolicy: IfNotPresent
+        command:
+        - /metrics-server
+        - --kubelet-insecure-tls
+        - --kubelet-preferred-address-types=InternalIP
+        - --logtostderr=true
+        - --tls-cert-file=/etc/ssl/ms-cert
+        - --tls-private-key-file=/etc/ssl/ms-key
+        - --v=2
         volumeMounts:
+        - name: ssl-dir
+          mountPath: /etc/ssl
         - name: tmp-dir
           mountPath: /tmp
 

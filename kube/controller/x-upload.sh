@@ -44,7 +44,6 @@ upload_cert() {
       ${GEN_DIR}/${COMP_KUBE_SERVICE_ACCOUNT}-key.pem \
       ${GEN_DIR}/${COMP_KUBE_API_SERVER}.pem \
       ${GEN_DIR}/${COMP_KUBE_API_SERVER}-key.pem \
-      ${GEN_DIR}/${COMP_KUBE_CTRL_MGR}.service \
       ${GEN_DIR}/encryption-config.yaml \
       ${GEN_DIR}/RBAC-*.yaml \
       ${GEN_DIR}/${CTRL}-deploy.sh"

@@ -5,13 +5,13 @@ set -e
 source ./env.sh
 
 gen_ca() {
-  pushd cert
+  pushd common
     ./x-gen.sh gen_ca
   popd
 }
 
 gen_cert() {
-  TARGETS=(cert controller worker)
+  TARGETS=(controller worker common)
   for T in ${TARGETS[@]}
   do
     pushd ${T}
@@ -22,7 +22,7 @@ gen_cert() {
 }
 
 gen_conf() {
-  TARGETS=(cert controller worker)
+  TARGETS=(controller worker common)
   for T in ${TARGETS[@]}
   do
     pushd ${T}
@@ -37,13 +37,14 @@ gen_all() {
 }
 
 download_all() {
-  TARGETS=(controller worker)
+  TARGETS=(controller worker common)
   for T in ${TARGETS[@]}
   do
     pushd ${T}
-      ./x-get.sh
+      ./x-get.sh &
     popd
   done
+  wait
 }
 
 prepare_bin_all() {
@@ -58,7 +59,7 @@ prepare_bin_all() {
 }
 
 upload_cert_all() {
-  TARGETS=(controller worker cert)
+  TARGETS=(controller worker common)
   for T in ${TARGETS[@]}
   do
     pushd ${T}
@@ -69,7 +70,7 @@ upload_cert_all() {
 }
 
 upload_conf_all() {
-  TARGETS=(controller worker cert)
+  TARGETS=(controller worker common)
   for T in ${TARGETS[@]}
   do
     pushd ${T}
@@ -106,7 +107,7 @@ deploy_controllers() {
     USER=${CTRL_SSH_USER_LIST[${i}]}
     PASS=${CTRL_SSH_USER_PASS_LIST[${i}]}
 
-    printf "\n\nDeploying Controller: ${CTRL}\n\n\n"
+    echo "[DEPLOY] ${CTRL}"
     ssh -p ${SSH_PORT} -i ${SSH_ID} ${USER}@${SSH_ADDR} \
       "echo ${PASS} | sudo -S bash ~/${CTRL}-deploy.sh $1" &
   done
@@ -138,8 +139,8 @@ deploy_workers() {
     SSH_ID=${WORKER_SSH_ID_LIST[${i}]}
     USER=${WORKER_SSH_USER_LIST[${i}]}
     PASS=${WORKER_SSH_USER_PASS_LIST[${i}]}
-    
-    printf "\n\nDeploying Worker: ${WORKER}\n\n\n"
+
+    echo "[DEPLOY] ${WORKER}"
     ssh -p ${SSH_PORT} -i ${SSH_ID} ${USER}@${SSH_ADDR} \
       "echo ${PASS} | sudo -S bash ~/${WORKER}-deploy.sh $1" &
   done
@@ -185,8 +186,8 @@ reboot_controllers() {
     SSH_ID=${CTRL_SSH_ID_LIST[${i}]}
     USER=${CTRL_SSH_USER_LIST[${i}]}
     PASS=${CTRL_SSH_USER_PASS_LIST[${i}]}
-    
-    printf "Rebooting Controller: ${CTRL}\n"
+
+    echo "[REBOOT] ${CTRL}"
     ssh -p ${SSH_PORT} -i ${SSH_ID} ${USER}@${SSH_ADDR} \
       "echo ${PASS} | sudo -S reboot" &
   done
@@ -202,8 +203,8 @@ reboot_workers() {
     SSH_ID=${WORKER_SSH_ID_LIST[${i}]}
     USER=${WORKER_SSH_USER_LIST[${i}]}
     PASS=${WORKER_SSH_USER_PASS_LIST[${i}]}
-    
-    printf "Rebooting Worker: ${WORKER}\n"
+
+    echo "[REBOOT] ${WORKER}"
     ssh -p ${SSH_PORT} -i ${SSH_ID} ${USER}@${SSH_ADDR} \
       "echo ${PASS} | sudo -S reboot" &
   done
@@ -218,13 +219,13 @@ reboot_all() {
 
 config_local_kubectl() {
   kubectl config set-cluster ${CLUSTER_NAME} \
-    --certificate-authority=./cert/${GEN_DIR}/ca.pem \
+    --certificate-authority=./common/${GEN_DIR}/ca.pem \
     --embed-certs=true \
     --server=https://${REMOTE_KUBE_PUB_ADDR}:${REMOTE_KUBE_LISTEN_PORT}
 
   kubectl config set-credentials admin \
-    --client-certificate=./cert/${GEN_DIR}/admin.pem \
-    --client-key=./cert/${GEN_DIR}/admin-key.pem
+    --client-certificate=./common/${GEN_DIR}/admin.pem \
+    --client-key=./common/${GEN_DIR}/admin-key.pem
 
   kubectl config set-context ${CONTEXT_NAME} \
     --cluster=${CLUSTER_NAME} \

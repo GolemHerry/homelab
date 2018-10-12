@@ -31,7 +31,7 @@ EOF
   AGGREGATOR_CA_CERT_CSR_CFG=${GEN_DIR}/csr-client-ca.json
   cat > ${AGGREGATOR_CA_CERT_CSR_CFG} <<EOF
 {
-  "CN": "aggregator",
+  "CN": "front-proxy-client",
   "key": {
     "algo": "rsa",
     "size": 2048
@@ -39,7 +39,7 @@ EOF
   "names": [{
     "C": "${CERT_COUNTRY}",
     "L": "${CERT_LOCATION}",
-    "O": "aggregator",
+    "O": "Kubernetes",
     "OU": "${CERT_ORG_UNIT}",
     "ST": "${CERT_STATE}"
   }]
@@ -77,6 +77,7 @@ gen_admin_cert() {
   }]
 }
 EOF
+
   cfssl gencert \
     -ca=${GEN_DIR}/ca.pem \
     -ca-key=${GEN_DIR}/ca-key.pem \
@@ -110,12 +111,103 @@ gen_admin_conf() {
     --kubeconfig=${GEN_DIR}/admin.kubeconfig
 }
 
+gen_kube_porxy_cert() {
+  CERT_CSR_CFG=${GEN_DIR}/csr-kube-proxy.json
+  cat > ${CERT_CSR_CFG} <<EOF
+{
+  "CN": "system:kube-proxy",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [{
+    "C": "${CERT_COUNTRY}",
+    "L": "${CERT_LOCATION}",
+    "O": "system:node-proxier",
+    "OU": "${CERT_ORG_UNIT}",
+    "ST": "${CERT_STATE}"
+  }]
+}
+EOF
+
+  cfssl gencert \
+    -ca=${GEN_DIR}/ca.pem \
+    -ca-key=${GEN_DIR}/ca-key.pem \
+    -config=ca-config.json \
+    -profile=kubernetes \
+    ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/kube-proxy
+
+  rm -f ${CERT_CSR_CFG}
+}
+
+gen_kube_proxy_conf() {
+  CFG_KUBE_PROXY=${GEN_DIR}/kube-proxy-config.yaml
+  cat > ${CFG_KUBE_PROXY} <<EOF
+kind: KubeProxyConfiguration
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+clientConnection:
+  kubeconfig: "/var/lib/kube-proxy/kubeconfig"
+mode: "iptables"
+clusterCIDR: "${KUBE_CLUSTER_CIDR}"
+EOF
+
+  CFG_SYSTEMD_KUBE_PROXY=${GEN_DIR}/kube-proxy.service
+  cat > ${CFG_SYSTEMD_KUBE_PROXY} <<EOF
+[Unit]
+Description=Kubernetes Kube Proxy
+Documentation=https://github.com/kubernetes/kubernetes
+
+[Service]
+ExecStartPre=/sbin/modprobe br_netfilter
+ExecStart=/usr/local/bin/kube-proxy \\
+  --config=/var/lib/kube-proxy/kube-proxy-config.yaml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  kubectl config set-cluster ${CLUSTER_NAME} \
+      --certificate-authority=${GEN_DIR}/ca.pem \
+      --embed-certs=true \
+      --server=https://${KUBE_PUB_ADDR}:${KUBE_API_SERVER_PORT} \
+      --kubeconfig=${GEN_DIR}/kube-proxy.kubeconfig
+
+  kubectl config set-credentials system:kube-proxy \
+      --client-certificate=${GEN_DIR}/kube-proxy.pem \
+      --client-key=${GEN_DIR}/kube-proxy-key.pem \
+      --embed-certs=true \
+      --kubeconfig=${GEN_DIR}/kube-proxy.kubeconfig
+
+  kubectl config set-context default \
+      --cluster=${CLUSTER_NAME} \
+      --user=system:kube-proxy \
+      --kubeconfig=${GEN_DIR}/kube-proxy.kubeconfig
+
+  kubectl config use-context default \
+      --kubeconfig=${GEN_DIR}/kube-proxy.kubeconfig
+}
+
+gen_sysctl_conf() {
+  CFG_SYSCTL=${GEN_DIR}/kube-sysctl.conf
+  cat > ${CFG_SYSCTL} <<EOF
+# enable packet forwarding for IPv4
+net.ipv4.ip_forward=1
+# enable iptables rules to work on Linux bridges
+net.bridge.bridge-nf-call-iptables=1
+EOF
+}
+
 gen_cert() {
   gen_admin_cert
+  gen_kube_porxy_cert
 }
 
 gen_conf() {
   gen_admin_conf
+  gen_kube_proxy_conf
+  gen_sysctl_conf
 }
 
 mkdir -p ${GEN_DIR}

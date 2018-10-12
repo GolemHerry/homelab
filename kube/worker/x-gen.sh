@@ -5,22 +5,10 @@ set -e
 _KUBE_DIR=..
 source ${_KUBE_DIR}/env.sh
 
-CA_DIR=${_KUBE_DIR}/cert
-CA_GEN_DIR=${_KUBE_DIR}/cert/${GEN_DIR}
+CA_DIR=${_KUBE_DIR}/common
+CA_GEN_DIR=${_KUBE_DIR}/common/${GEN_DIR}
 
 gen_static_config() {
-  CFG_SYSCTL=${GEN_DIR}/sysctl.conf
-  cat > ${CFG_SYSCTL} <<EOF
-# 
-# /etc/sysctl.conf - Configuration file for setting system variables
-# See /etc/sysctl.d/ for additional system variables.
-# See sysctl.conf (5) for information.
-
-# enable packet forwarding for IPv4
-net.ipv4.ip_forward=1
-# enable iptables rules to work on Linux bridges
-net.bridge.bridge-nf-call-iptables=1
-EOF
   CFG_CRICTL=${GEN_DIR}/crictl.yaml
   cat > ${CFG_CRICTL} <<EOF
 runtime-endpoint: unix:///run/containerd/containerd.sock
@@ -107,84 +95,6 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-}
-
-gen_kube_porxy_cert() {
-  CERT_CSR_CFG=${GEN_DIR}/csr-${COMP_KUBE_PROXY}.json
-  cat > ${CERT_CSR_CFG} <<EOF
-{
-  "CN": "system:${COMP_KUBE_PROXY}",
-  "key": {
-    "algo": "rsa",
-    "size": 2048
-  },
-  "names": [{
-    "C": "${CERT_COUNTRY}",
-    "L": "${CERT_LOCATION}",
-    "O": "system:node-proxier",
-    "OU": "${CERT_ORG_UNIT}",
-    "ST": "${CERT_STATE}"
-  }]
-}
-EOF
-
-  cfssl gencert \
-    -ca=${CA_GEN_DIR}/ca.pem \
-    -ca-key=${CA_GEN_DIR}/ca-key.pem \
-    -config=${CA_DIR}/ca-config.json \
-    -profile=kubernetes \
-    ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/${COMP_KUBE_PROXY}
-
-  rm -f ${CERT_CSR_CFG}
-}
-
-gen_kube_proxy_conf() {
-  CFG_KUBE_PROXY=${GEN_DIR}/${COMP_KUBE_PROXY}-config.yaml
-  cat > ${CFG_KUBE_PROXY} <<EOF
-kind: KubeProxyConfiguration
-apiVersion: kubeproxy.config.k8s.io/v1alpha1
-clientConnection:
-  kubeconfig: "/var/lib/${COMP_KUBE_PROXY}/kubeconfig"
-mode: "iptables"
-clusterCIDR: "${KUBE_CLUSTER_CIDR}"
-EOF
-
-  CFG_SYSTEMD_KUBE_PROXY=${GEN_DIR}/${COMP_KUBE_PROXY}.service
-  cat > ${CFG_SYSTEMD_KUBE_PROXY} <<EOF
-[Unit]
-Description=Kubernetes Kube Proxy
-Documentation=https://github.com/kubernetes/kubernetes
-
-[Service]
-ExecStartPre=/sbin/modprobe br_netfilter
-ExecStart=/usr/local/bin/${COMP_KUBE_PROXY} \\
-  --config=/var/lib/${COMP_KUBE_PROXY}/${COMP_KUBE_PROXY}-config.yaml
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-  kubectl config set-cluster ${CLUSTER_NAME} \
-      --certificate-authority=${CA_GEN_DIR}/ca.pem \
-      --embed-certs=true \
-      --server=https://${KUBE_PUB_ADDR}:${KUBE_API_SERVER_PORT} \
-      --kubeconfig=${GEN_DIR}/${COMP_KUBE_PROXY}.kubeconfig
-
-  kubectl config set-credentials system:${COMP_KUBE_PROXY} \
-      --client-certificate=${GEN_DIR}/${COMP_KUBE_PROXY}.pem \
-      --client-key=${GEN_DIR}/${COMP_KUBE_PROXY}-key.pem \
-      --embed-certs=true \
-      --kubeconfig=${GEN_DIR}/${COMP_KUBE_PROXY}.kubeconfig
-
-  kubectl config set-context default \
-      --cluster=${CLUSTER_NAME} \
-      --user=system:${COMP_KUBE_PROXY} \
-      --kubeconfig=${GEN_DIR}/${COMP_KUBE_PROXY}.kubeconfig
-
-  kubectl config use-context default \
-      --kubeconfig=${GEN_DIR}/${COMP_KUBE_PROXY}.kubeconfig
 }
 
 gen_kubelet_cert() {
@@ -302,8 +212,9 @@ runtimeRequestTimeout: "15m"
 tlsCertFile: "/var/lib/kubelet/${WORKER}.pem"
 tlsPrivateKeyFile: "/var/lib/kubelet/${WORKER}-key.pem"
 EOF
-  
+
   CFG_NET_ROUTE=""
+
   for j in ${!WORKER_LIST[@]}
   do
     X_POD_CIDR=${WORKER_POD_CIDR_LIST[${j}]}
@@ -328,8 +239,8 @@ network:
     ${IFACE}:
       addresses:
       - ${INTERN_IP}/${HOMELAB_NET_PREFIX_LEN}
-      dhcp4: false
-      gateway4: ${HOMELAB_GW}
+      dhcp4: no
+      gateway4: ${HOMELAB_GW_IPV4}
       nameservers:
         addresses:
         - ${HOMELAB_DNS_SRV}
@@ -348,7 +259,7 @@ mkdir -p \\
   /etc/cni/net.d \\
   /opt/cni/bin \\
   /var/lib/kubelet \\
-  /var/lib/${COMP_KUBE_PROXY} \\
+  /var/lib/kube-proxy \\
   /var/lib/${COMP_KUBE_API_SERVER} \\
   /var/run/${COMP_KUBE_API_SERVER} \\
   /etc/containerd
@@ -375,13 +286,13 @@ install_conf() {
   mv ${WORKER}-kubelet.yaml /var/lib/kubelet/kubelet-config.yaml
 
   # Install configurations for kube-proxy
-  mv ${COMP_KUBE_PROXY}-config.yaml /var/lib/${COMP_KUBE_PROXY}/${COMP_KUBE_PROXY}-config.yaml
-  mv ${COMP_KUBE_PROXY}.service /etc/systemd/system/${COMP_KUBE_PROXY}.service
-  mv ${COMP_KUBE_PROXY}.kubeconfig /var/lib/${COMP_KUBE_PROXY}/kubeconfig
+  mv kube-proxy-config.yaml /var/lib/kube-proxy/kube-proxy-config.yaml
+  mv kube-proxy.service /etc/systemd/system/kube-proxy.service
+  mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
 
   # Install configurations for network
   mv ${WORKER}-network.yaml /etc/netplan/50-cloud-init.yaml
-  mv sysctl.conf /etc/sysctl.conf
+  mv kube-sysctl.conf /etc/sysctl.d/10-kube-sysctl.conf
 }
 
 install_bin() {
@@ -390,43 +301,44 @@ install_bin() {
 
   # decompress worker components
   tar xf worker-comp.tar.xz
-  tar xf crictl-v${VER_KUBE}-linux-amd64.tar.gz -C /usr/local/bin/
+  tar xf crictl-v${VER_CRICTL}-linux-amd64.tar.gz -C /usr/local/bin/
   tar xf cni-plugins-amd64-v${VER_CNI_PLUGINS}.tgz -C /opt/cni/bin/
   tar xf containerd-${VER_CONTAINERD}.linux-amd64.tar.gz -C /
 
   # Install bin
   mv runsc* runsc
   mv runc.amd64 runc
-  chmod +x kubectl ${COMP_KUBE_PROXY} kubelet runc runsc
-  mv kubectl ${COMP_KUBE_PROXY} kubelet runc runsc /usr/local/bin/
+  chmod +x kubectl kube-proxy kubelet runc runsc
+  mv kubectl kube-proxy kubelet runc runsc /usr/local/bin/
 }
 
 reload() {
   netplan apply
+  sysctl -p
   systemctl daemon-reload
-  systemctl enable containerd kubelet ${COMP_KUBE_PROXY}
-  systemctl restart containerd kubelet ${COMP_KUBE_PROXY}
+  systemctl enable containerd kubelet kube-proxy
+  systemctl restart containerd kubelet kube-proxy
 }
 
 deploy_cert() {
   install_cert
   reload
 
-  printf "\n\nDeploy ${WORKER} Cert Success\n"
+  echo "[DEPLOY] ${WORKER} Cert success"
 }
 
 deploy_conf() {
   install_conf
   reload
 
-  printf "\n\nDeploy ${WORKER} Config Success\n"
+  echo "[DEPLOY] ${WORKER} Config success"
 }
 
 deploy_bin() {
   install_bin
   reload
 
-  printf "\n\nDeploy ${WORKER} Bin Success\n"
+  echo "[DEPLOY] ${WORKER} Bin success"
 }
 
 deploy_all() {
@@ -435,7 +347,7 @@ deploy_all() {
   install_conf
   reload
 
-  printf "\n\nDeploy ${WORKER} All Success\n"
+  echo "[DEPLOY] ${WORKER} all success"
 }
 
 \$@
@@ -448,12 +360,10 @@ EOF
 
 gen_cert() {
   gen_kubelet_cert
-  gen_kube_porxy_cert
 }
 
 gen_conf() {
   gen_static_config
-  gen_kube_proxy_conf
   gen_kubelet_conf
 }
 
