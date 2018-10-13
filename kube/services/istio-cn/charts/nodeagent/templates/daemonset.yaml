@@ -1,0 +1,36 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: nodeagent
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: istio-nodeagent
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    istio: nodeagent
+spec:
+  template:
+    metadata:
+      labels:
+        istio: nodeagent
+        app: nodeagent
+    spec:
+      containers:
+      - name: nodeagent
+        image: "{{ .Values.global.hub }}.{{ .Values.image }}:{{ .Values.global.tag }}"
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        volumeMounts:
+        - mountPath: /var/run/sds
+          name: sdsudspath
+        env:
+        {{- if .Values.env }}
+        {{- range $key, $val := .Values.env }}
+        - name: {{ $key }}
+          value: "{{ $val }}"
+        {{- end }}
+        {{- end }}
+      volumes:
+      - name: sdsudspath
+        hostPath:
+          path: /var/run/sds
