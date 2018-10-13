@@ -23,15 +23,16 @@ My Homelab (with Kubernetes inside)
 ### Prerequisite
 
 <details>
-<summary>0. Get this project using git</summary>
-<pre><code class="language-bash">git clone https://github.com/jeffreystoke/homelab.git</code></pre>
+<summary>0. Get this project using git (include submodules)</summary>
+<pre><code class="language-bash">git clone --recurse-submodules https://github.com/jeffreystoke/homelab.git</code></pre>
 </details>
 
 <details>
-<summary>1. A cheap server with ESXI installed</summary>
-I got the second-hand DELL R710 rack server at $300, and installed ESXI 6.7 on it
-
-Useful tutorial: <a href="https://www.virten.net/2014/12/howto-create-a-bootable-esxi-installer-usb-flash-drive/">Create a Bootable ESXi Installer USB Flash Drive</a>
+<summary>1. A cheap server/laptop/PC with hypervisor (e.g. ESXI, XEN, ...) installed or serval bare-metal servers</summary>
+I got the second-hand DELL R710 rack server at about $200, and installed ESXI 6.7 on it
+<br/><br/>
+Useful Tutorial for ESXI Installation: <a href="https://www.virten.net/2014/12/howto-create-a-bootable-esxi-installer-usb-flash-drive/">Create a Bootable ESXi Installer USB Flash Drive</a>
+<br/>
 </details>
 
 <details>
@@ -51,7 +52,7 @@ I used a <a href="https://openwrt.org/"><code>OpenWRT</code></a> router (awesome
 </details>
 
 <details>
-<summary>3. X509 Certifications for <code>https</code></summary>
+<summary>3. X509 Certifications for edge-proxy <code>https</code></summary>
 It's 2018, always use tls when talking through the Internet! I made it with the help of <a href="https://github.com/FiloSottile/mkcert"><code>mkcert</code></a>, a great tool for creating self signed certifications
 
 You have to run the following command inside the porject root directory
@@ -65,14 +66,11 @@ mkdir -p cert && mv *-key.pem cert/key.pem && mv *.pem cert/cert.pem</code>
 </pre>
 </details>
 
-### Steps (WIP)
+### Steps
 
 <details>
-<summary>1. Copy and apply your configuration to <code>env.sh</code></summary>
+<summary>1. Setup your <code>Kubernetes</code> cluster with <a href="./kube"><code>kube</code></a></summary>
 <pre>
-<code class="language-bash">cp env.example.sh env.sh
-# modify variable values in env.sh with your favourite editor</code>
+<code class="language-bash">cd kube</code>
 </pre>
 </details>
-
-TODO: Finish steps

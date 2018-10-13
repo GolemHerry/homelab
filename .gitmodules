@@ -1,0 +1,8 @@
+[submodule "istio"]
+	path = kube/services/istio
+	url = https://github.com/istio/istio.git
+	branch = master
+[submodule "metrics-server"]
+	path = kube/services/metrics-server
+	url = https://github.com/kubernetes-incubator/metrics-server.git
+	branch = master

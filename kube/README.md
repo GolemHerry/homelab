@@ -2,12 +2,31 @@
 
 No `Ansible`, just plain shell scripts
 
+## Table of Contents
+
+- [Prerequisite](#prerequisite)
+    - [Serverside](#serverside)
+    - [Localhost](#localhost)
+- [General steps](#general-steps)
+- [How to use](#how-to-use)
+    - [First time deployment](#first-time-deployment)
+    - [Configuration Update](#configuration-update)
+    - [Kubernetes Update](#kubernetes-update)
+- [Services](#services)
+    - [Fundamental Services](#fundamental-services)
+    - [Extra Services with `helm`](#extra-services-with-helm)
+        - [Install `helm`](#install-helm)
+        - [Monitoring Service](#monitoring-service)
+- [Service Mesh](#service-mesh)
+    - [Install `istio` via helm](#install-istio-via-helm)
+- [References](#references)
+
 ## Prerequisite
 
 Please make sure
 
-1. Your router do not resolve your server hostname to ipv6 address, since we don't tend to ipv6 routes between servers
-2. Your router resolve your server hostname to ipv4 address, or there can be some issues when deploying services
+1. Your DNS-Server (maybe integrated in you router) do not resolve your server hostname to ipv6 address, since we don't tend to ipv6 routes between servers
+2. Your DNS-Server (maybe integrated in you router) resolve your server hostname to ipv4 address, or there can be some issues when deploying services
 
 ### Serverside
 
@@ -83,9 +102,9 @@ $ ./x-helper.sh download_all && ./x-helper.sh prepare_bin_all
 $ ./x-helper.sh upload_all && ./x-helper.sh deploy_all
 ```
 
-### Services
+## Services
 
-#### Fundamental Services
+### Fundamental Services
 
 1.Install kube-dns (coredns)
 
@@ -93,7 +112,7 @@ $ ./x-helper.sh upload_all && ./x-helper.sh deploy_all
 $ kubectl create -f services/kube-coredns
 ```
 
-2.Create certs for metrics-server and install
+2.Create certs for metrics-server and deploy metrics-server
 
 ```bash
 $ kubectl create secret generic \
@@ -101,10 +120,13 @@ $ kubectl create secret generic \
     --from-file=ca=common/generated/ca-aggregator.pem \
     --from-file=ms-key=common/generated/aggregator-proxy-client-key.pem \
     --from-file=ms-cert=common/generated/aggregator-proxy-client.pem
-$ kubectl create -f services/kube-metric-server
+$ kubectl create -f services/metrics-server/deploy/1.8+
+
+# In China, you can use aliyun google container mirror (configured, maybe not the latest)
+# $ kubectl create -f services/metrics-server-cn
 ```
 
-3.Install kube-dashboard
+3.Install kubernetes-dashboard (optional)
 
 ```bash
 $ kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
@@ -112,12 +134,16 @@ $ kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master
 # in China, you can use aliyun google container mirror
 # $ kubectl create -f services/kube-dashboard/kube-dashboard.cn.yaml
 
-# (optional, not recommended)
+# (optional, not recommended if you are using public servers)
 # skip dashborad authentication (click `skip` on dashboard login page)
 # $ kubectl create -f services/kube-dashboard/dashoard-admin.yaml
 ```
 
-#### Configure `helm`
+### Extra Services with `helm`
+
+- [Monitoring Service](#monitoring-service)
+
+#### Install `helm`
 
 1.Create and bind the tiller service account for `helm`
 
@@ -134,9 +160,63 @@ $ helm init --service-account tiller --upgrade
 # $ helm init --service-account tiller --upgrade -i registry.cn-hangzhou.aliyuncs.com/google_containers/tiller:v2.11.0
 ```
 
-#### Further
+#### Monitoring Service
 
-// TODO: add services via `helm`
+##### Install `Prometheus` via `helm` (non-persistent)
+
+```bash
+# modify services/prometheus/values.yaml if you want to persist metrics data or other features
+$ helm install --namespace monitoring --name prometheus stable/prometheus -f services/prometheus/values.yaml
+```
+
+##### Install `Grafana` via `helm`
+
+1.Install grafana to your kubernetes cluster
+
+```bash
+# modify services/grafana/values.yaml if necessary
+$ helm install --namespace monitoring --name grafana stable/grafana -f services/grafana/values.yaml
+```
+
+2.Access your grafana
+
+```bash
+$ export POD_NAME=$(kubectl get pods -n monitoring -l "app=grafana" -o jsonpath="{.items[0].metadata.name}")
+$ kubectl --namespace monitoring port-forward ${POD_NAME} 3000
+
+# get admin password (for admin user)
+$ kubectl --namespace monitoring get secret grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+
+# open up your browser and navigate to http://localhost:3000
+```
+
+3.Configure your dashboard
+
+## Service Mesh
+
+### Install `istio` via helm
+
+__REFERENCE:__ [istio - install/kubernetes/helm/istio](https://github.com/istio/istio/tree/master/install/kubernetes/helm/istio)
+
+1.Create namespace for `Istio`
+
+```bash
+$ kubectl create ns istio-system
+```
+
+3.Install `Istio` with automatic sidecar injection
+
+```bash
+$ helm install services/istio/install/kubernetes/helm/istio --name istio --namespace istio-system
+
+# Again, In China, you can use docker mirror to install istio
+# $ helm install services/istio-cn --name istio --namespace istio-system
+
+# uninstalling
+# $ helm del --purge istio
+# $ kubectl delete crd --all
+# $ kubectl -n istio-system delete customresourcedefinitions.apiextensions.k8s.io --all
+```
 
 ## References
 
