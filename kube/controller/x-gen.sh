@@ -39,7 +39,7 @@ ExecStart=/usr/local/bin/etcd \\
   --listen-peer-urls https://${INTERN_IP}:${P_PORT} \\
   --listen-client-urls https://${INTERN_IP}:${C_PORT},https://127.0.0.1:${C_PORT} \\
   --advertise-client-urls https://${INTERN_IP}:${C_PORT} \\
-  --initial-cluster-token ${KUBE_ETCD_CLUSTER_NAME} \\
+  --initial-cluster-token ${KUBE_ETCD_KUBE_CLUSTER_NAME} \\
   --initial-cluster ${ETCD_INITIAL_CLUSTERS} \\
   --initial-cluster-state new \\
   --data-dir=/var/lib/etcd
@@ -54,7 +54,7 @@ EOF
 }
 
 gen_common_cert() {
-  TARGET=(${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER})
+  TARGET=(kube-controller-manager kube-scheduler)
   for T in ${TARGET[@]}
   do
     CERT_CSR_CFG=${GEN_DIR}/csr-${T}.json
@@ -67,11 +67,11 @@ gen_common_cert() {
     "size": 2048
   },
   "names": [{
-    "C": "${CERT_COUNTRY}",
-    "L": "${CERT_LOCATION}",
+    "C": "${KUBE_CERT_COUNTRY}",
+    "L": "${KUBE_CERT_LOCATION}",
     "O": "system:${T}",
-    "OU": "${CERT_ORG_UNIT}",
-    "ST": "${CERT_STATE}"
+    "OU": "${KUBE_CERT_ORG_UNIT}",
+    "ST": "${KUBE_CERT_STATE}"
   }]
 }
 EOF
@@ -87,10 +87,10 @@ EOF
 }
 
 gen_common_conf() {
-  TARGET=(${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER})
+  TARGET=(kube-controller-manager kube-scheduler)
   for T in ${TARGET[@]}
   do
-    kubectl config set-cluster ${CLUSTER_NAME} \
+    kubectl config set-cluster ${KUBE_CLUSTER_NAME} \
       --certificate-authority=${CA_GEN_DIR}/ca.pem \
       --embed-certs=true \
       --server=https://127.0.0.1:${KUBE_API_SERVER_PORT} \
@@ -102,31 +102,31 @@ gen_common_conf() {
       --embed-certs=true \
       --kubeconfig=${GEN_DIR}/${T}.kubeconfig
 
-    kubectl config set-context ${CONTEXT_NAME} \
-      --cluster=${CLUSTER_NAME} \
+    kubectl config set-context ${KUBE_CONTEXT_NAME} \
+      --cluster=${KUBE_CLUSTER_NAME} \
       --user=system:${T} \
       --kubeconfig=${GEN_DIR}/${T}.kubeconfig
 
-    kubectl config use-context ${CONTEXT_NAME} \
+    kubectl config use-context ${KUBE_CONTEXT_NAME} \
       --kubeconfig=${GEN_DIR}/${T}.kubeconfig
   done
 }
 
 gen_kube_apiserver_cert() {
-  CERT_CSR_CFG=${GEN_DIR}/${COMP_KUBE_API_SERVER}.json
+  CERT_CSR_CFG=${GEN_DIR}/kubernetes.json
   cat > ${CERT_CSR_CFG} <<EOF
 {
-  "CN": "${COMP_KUBE_API_SERVER}",
+  "CN": "kubernetes",
   "key": {
     "algo": "rsa",
     "size": 2048
   },
   "names": [{
-    "C": "${CERT_COUNTRY}",
-    "L": "${CERT_LOCATION}",
+    "C": "${KUBE_CERT_COUNTRY}",
+    "L": "${KUBE_CERT_LOCATION}",
     "O": "Kubernetes",
-    "OU": "${CERT_ORG_UNIT}",
-    "ST": "${CERT_STATE}"
+    "OU": "${KUBE_CERT_ORG_UNIT}",
+    "ST": "${KUBE_CERT_STATE}"
   }]
 }
 EOF
@@ -135,9 +135,9 @@ EOF
     -ca=${CA_GEN_DIR}/ca.pem \
     -ca-key=${CA_GEN_DIR}/ca-key.pem \
     -config=${CA_DIR}/ca-config.json \
-    -hostname=${WORKER_ADDR_LIST},${CTRL_ADDR_LIST},${KUBE_PUB_ADDR},${KUBE_SERVICE_CLUSTER_GW_ADDR},127.0.0.1,kubernetes.default \
+    -hostname=${WORKER_ADDR_LIST},${CTRL_ADDR_LIST},${KUBE_PUB_ADDR},${KUBE_SVC_KUBERNETES},127.0.0.1,kubernetes.default \
     -profile=kubernetes \
-    ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/${COMP_KUBE_API_SERVER}
+    ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/kubernetes
 
   rm -f ${CERT_CSR_CFG}
 }
@@ -163,37 +163,37 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --audit-log-path=/var/log/audit.log \\
   --authorization-mode=Node,RBAC \\
   --bind-address=0.0.0.0 \\
-  --client-ca-file=/var/lib/${COMP_KUBE_API_SERVER}/ca.pem \\
-  --requestheader-client-ca-file=/var/lib/${COMP_KUBE_API_SERVER}/ca-aggregator.pem \\
-  --proxy-client-cert-file=/var/lib/${COMP_KUBE_API_SERVER}/aggregator-proxy-client.pem \\
-  --proxy-client-key-file=/var/lib/${COMP_KUBE_API_SERVER}/aggregator-proxy-client-key.pem \\
+  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  --requestheader-client-ca-file=/var/lib/kubernetes/ca-aggregator.pem \\
+  --proxy-client-cert-file=/var/lib/kubernetes/aggregator-proxy-client.pem \\
+  --proxy-client-key-file=/var/lib/kubernetes/aggregator-proxy-client-key.pem \\
   --requestheader-allowed-names= \\
   --requestheader-extra-headers-prefix=X-Remote-Extra- \\
   --requestheader-group-headers=X-Remote-Group \\
   --requestheader-username-headers=X-Remote-User \\
   --enable-admission-plugins=Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota \\
   --enable-swagger-ui=true \\
-  --etcd-cafile=/var/lib/${COMP_KUBE_API_SERVER}/ca.pem \\
-  --etcd-certfile=/var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_API_SERVER}.pem \\
-  --etcd-keyfile=/var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_API_SERVER}-key.pem \\
+  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
   --etcd-servers=${ETCD_SERVERS} \\
   --event-ttl=1h \\
-  --kubelet-certificate-authority=/var/lib/${COMP_KUBE_API_SERVER}/ca.pem \\
-  --kubelet-client-certificate=/var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_API_SERVER}.pem \\
-  --kubelet-client-key=/var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_API_SERVER}-key.pem \\
+  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
   --kubelet-https=true \\
   --runtime-config=api/all \\
-  --service-account-key-file=/var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_SERVICE_ACCOUNT}.pem \\
-  --service-cluster-ip-range=${KUBE_SERVICE_IP_RANGE} \\
+  --service-account-key-file=/var/lib/kubernetes/kube-service-account.pem \\
+  --service-cluster-ip-range=${KUBE_SVC_CIDR} \\
   --service-node-port-range=${KUBE_NODE_PORT_RANGE} \\
-  --tls-cert-file=/var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_API_SERVER}.pem \\
-  --tls-private-key-file=/var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_API_SERVER}-key.pem \\
+  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
   --v=2
 
 # 
 # currently, we will disable encryption, see https://github.com/kubernetes/kubernetes/issues/66844
 # 
-# --experimental-encryption-provider-config=/var/lib/${COMP_KUBE_API_SERVER}/encryption-config.yaml
+# --experimental-encryption-provider-config=/var/lib/kubernetes/encryption-config.yaml
 
 Restart=on-failure
 RestartSec=5
@@ -205,23 +205,23 @@ EOF
 }
 
 gen_kube_controller_manager_conf() {
-  cat > ${GEN_DIR}/${COMP_KUBE_CTRL_MGR}.service <<EOF
+  cat > ${GEN_DIR}/kube-controller-manager.service <<EOF
 [Unit]
 Description=Kubernetes Controller Manager
 Documentation=https://github.com/kubernetes/kubernetes
 
 [Service]
-ExecStart=/usr/local/bin/${COMP_KUBE_CTRL_MGR} \\
+ExecStart=/usr/local/bin/kube-controller-manager \\
   --bind-address=0.0.0.0 \\
-  --cluster-cidr=${KUBE_CLUSTER_CIDR} \\
+  --cluster-cidr=${KUBE_PODS_CIDR} \\
   --cluster-name=kubernetes \\
   --cluster-signing-cert-file=/var/lib/kubernetes/ca.pem \\
   --cluster-signing-key-file=/var/lib/kubernetes/ca-key.pem \\
-  --kubeconfig=/var/lib/kubernetes/${COMP_KUBE_CTRL_MGR}.kubeconfig \\
+  --kubeconfig=/var/lib/kubernetes/kube-controller-manager.kubeconfig \\
   --leader-elect=true \\
   --root-ca-file=/var/lib/kubernetes/ca.pem \\
-  --service-account-private-key-file=/var/lib/kubernetes/${COMP_KUBE_SERVICE_ACCOUNT}-key.pem \\
-  --service-cluster-ip-range=${KUBE_SERVICE_IP_RANGE} \\
+  --service-account-private-key-file=/var/lib/kubernetes/kube-service-account-key.pem \\
+  --service-cluster-ip-range=${KUBE_SVC_CIDR} \\
   --use-service-account-credentials=true \\
   --v=2
 Restart=on-failure
@@ -233,23 +233,23 @@ EOF
 }
 
 gen_kube_scheduler_conf() {
-  cat > ${GEN_DIR}/${COMP_KUBE_SCHEDULER}.yaml <<EOF
+  cat > ${GEN_DIR}/kube-scheduler.yaml <<EOF
 apiVersion: componentconfig/v1alpha1
 kind: KubeSchedulerConfiguration
 clientConnection:
-  kubeconfig: "/var/lib/kubernetes/${COMP_KUBE_SCHEDULER}.kubeconfig"
+  kubeconfig: "/var/lib/kubernetes/kube-scheduler.kubeconfig"
 leaderElection:
   leaderElect: true
 EOF
 
-  cat > ${GEN_DIR}/${COMP_KUBE_SCHEDULER}.service <<EOF
+  cat > ${GEN_DIR}/kube-scheduler.service <<EOF
 [Unit]
 Description=Kubernetes Scheduler
 Documentation=https://github.com/kubernetes/kubernetes
 
 [Service]
-ExecStart=/usr/local/bin/${COMP_KUBE_SCHEDULER} \\
-  --config=/etc/kubernetes/config/${COMP_KUBE_SCHEDULER}.yaml \\
+ExecStart=/usr/local/bin/kube-scheduler \\
+  --config=/etc/kubernetes/config/kube-scheduler.yaml \\
   --v=2
 Restart=on-failure
 RestartSec=5
@@ -260,20 +260,20 @@ EOF
 }
 
 gen_kube_service_account_cert() {
-  CERT_CSR_CFG=${GEN_DIR}/csr-${COMP_KUBE_SERVICE_ACCOUNT}.json
+  CERT_CSR_CFG=${GEN_DIR}/csr-kube-service-account.json
   cat > ${CERT_CSR_CFG} <<EOF
 {
-  "CN": "${COMP_KUBE_SERVICE_ACCOUNT}s",
+  "CN": "kube-service-accounts",
   "key": {
     "algo": "rsa",
     "size": 2048
   },
   "names": [{
-    "C": "${CERT_COUNTRY}",
-    "L": "${CERT_LOCATION}",
+    "C": "${KUBE_CERT_COUNTRY}",
+    "L": "${KUBE_CERT_LOCATION}",
     "O": "Kubernetes",
-    "OU": "${CERT_ORG_UNIT}",
-    "ST": "${CERT_STATE}"
+    "OU": "${KUBE_CERT_ORG_UNIT}",
+    "ST": "${KUBE_CERT_STATE}"
   }]
 }
 EOF
@@ -283,31 +283,31 @@ EOF
     -ca-key=${CA_GEN_DIR}/ca-key.pem \
     -config=${CA_DIR}/ca-config.json \
     -profile=kubernetes \
-    ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/${COMP_KUBE_SERVICE_ACCOUNT}
+    ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/kube-service-account
 
   rm -f ${CERT_CSR_CFG}
 }
 
 gen_kube_service_account_conf() {
-  kubectl config set-cluster ${CLUSTER_NAME} \
+  kubectl config set-cluster ${KUBE_CLUSTER_NAME} \
     --certificate-authority=${CA_GEN_DIR}/ca.pem \
     --embed-certs=true \
     --server=https://127.0.0.1:${KUBE_API_SERVER_PORT} \
-    --kubeconfig=${GEN_DIR}/${COMP_KUBE_SERVICE_ACCOUNT}.kubeconfig
+    --kubeconfig=${GEN_DIR}/kube-service-account.kubeconfig
 
-  kubectl config set-credentials system:${COMP_KUBE_SERVICE_ACCOUNT} \
-    --client-certificate=${GEN_DIR}/${COMP_KUBE_SERVICE_ACCOUNT}.pem \
-    --client-key=${GEN_DIR}/${COMP_KUBE_SERVICE_ACCOUNT}-key.pem \
+  kubectl config set-credentials system:kube-service-account \
+    --client-certificate=${GEN_DIR}/kube-service-account.pem \
+    --client-key=${GEN_DIR}/kube-service-account-key.pem \
     --embed-certs=true \
-    --kubeconfig=${GEN_DIR}/${COMP_KUBE_SERVICE_ACCOUNT}.kubeconfig
+    --kubeconfig=${GEN_DIR}/kube-service-account.kubeconfig
 
-  kubectl config set-context ${CONTEXT_NAME} \
-    --cluster=${CLUSTER_NAME} \
-    --user=system:${COMP_KUBE_SERVICE_ACCOUNT} \
-    --kubeconfig=${GEN_DIR}/${COMP_KUBE_SERVICE_ACCOUNT}.kubeconfig
+  kubectl config set-context ${KUBE_CONTEXT_NAME} \
+    --cluster=${KUBE_CLUSTER_NAME} \
+    --user=system:kube-service-account \
+    --kubeconfig=${GEN_DIR}/kube-service-account.kubeconfig
 
-  kubectl config use-context ${CONTEXT_NAME} \
-    --kubeconfig=${GEN_DIR}/${COMP_KUBE_SERVICE_ACCOUNT}.kubeconfig
+  kubectl config use-context ${KUBE_CONTEXT_NAME} \
+    --kubeconfig=${GEN_DIR}/kube-service-account.kubeconfig
 }
 
 gen_encryption_key() {
@@ -424,35 +424,35 @@ EOF
 set -e
 
 mkdir -p \\
-  /etc/${COMP_KUBE_API_SERVER}/config \\
-  /var/lib/${COMP_KUBE_API_SERVER}/ \\
+  /etc/kubernetes/config \\
+  /var/lib/kubernetes/ \\
   /var/lib/kube-proxy \\
   /etc/etcd
 
 install_cert() {
   # copy certs required by etcd
-  cp ca.pem ${COMP_KUBE_API_SERVER}*.pem /etc/etcd/
+  cp ca.pem kubernetes*.pem /etc/etcd/
   
   # Install certs
   mv ca*.pem \\
-    ${COMP_KUBE_API_SERVER}*.pem \\
-    ${COMP_KUBE_SERVICE_ACCOUNT}*.pem \\
+    kubernetes*.pem \\
+    kube-service-account*.pem \\
     aggregator-proxy-client*.pem \\
     encryption-config.yaml \\
-    /var/lib/${COMP_KUBE_API_SERVER}/
+    /var/lib/kubernetes/
 }
 
 install_conf() {
   # Install Systemd Configurations
   mv ${CTRL}-kube-apiserver.service /etc/systemd/system/kube-apiserver.service
-  mv ${COMP_KUBE_CTRL_MGR}.service /etc/systemd/system/${COMP_KUBE_CTRL_MGR}.service
-  mv ${COMP_KUBE_SCHEDULER}.service /etc/systemd/system/${COMP_KUBE_SCHEDULER}.service
+  mv kube-controller-manager.service /etc/systemd/system/kube-controller-manager.service
+  mv kube-scheduler.service /etc/systemd/system/kube-scheduler.service
   mv ${CTRL}.etcd.service /etc/systemd/system/etcd.service
 
   # Install Kube Configurations
-  mv ${COMP_KUBE_SCHEDULER}.kubeconfig /var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_SCHEDULER}.kubeconfig
-  mv ${COMP_KUBE_SCHEDULER}.yaml /etc/${COMP_KUBE_API_SERVER}/config/${COMP_KUBE_SCHEDULER}.yaml
-  mv ${COMP_KUBE_CTRL_MGR}.kubeconfig /var/lib/${COMP_KUBE_API_SERVER}/${COMP_KUBE_CTRL_MGR}.kubeconfig
+  mv kube-scheduler.kubeconfig /var/lib/kubernetes/kube-scheduler.kubeconfig
+  mv kube-scheduler.yaml /etc/kubernetes/config/kube-scheduler.yaml
+  mv kube-controller-manager.kubeconfig /var/lib/kubernetes/kube-controller-manager.kubeconfig
 
   # Install configurations for kube-proxy
   mv kube-proxy-config.yaml /var/lib/kube-proxy/kube-proxy-config.yaml
@@ -489,8 +489,8 @@ install_bin() {
   mv etcd-v${VER_ETCD}-linux-amd64/etcd* /usr/local/bin/
 
   # Install Kube Bin
-  chmod +x kubectl kube-apiserver kube-proxy ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
-  mv kubectl kube-apiserver kube-proxy ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER} /usr/local/bin/
+  chmod +x kubectl kube-apiserver kube-proxy kube-controller-manager kube-scheduler
+  mv kubectl kube-apiserver kube-proxy kube-controller-manager kube-scheduler /usr/local/bin/
   
   rm -rf etcd-v${VER_ETCD}-linux-amd64
 }
@@ -499,8 +499,8 @@ reload() {
   netplan apply
   sysctl -p
   systemctl daemon-reload
-  systemctl enable etcd nginx kube-apiserver kube-proxy ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
-  systemctl restart nginx etcd kube-apiserver kube-proxy ${COMP_KUBE_CTRL_MGR} ${COMP_KUBE_SCHEDULER}
+  systemctl enable etcd nginx kube-apiserver kube-proxy kube-controller-manager kube-scheduler
+  systemctl restart nginx etcd kube-apiserver kube-proxy kube-controller-manager kube-scheduler
 }
 
 deploy_cert() {

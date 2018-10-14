@@ -11,7 +11,8 @@ No `Ansible`, just plain shell scripts
 - [How to use](#how-to-use)
     - [First time deployment](#first-time-deployment)
     - [Configuration Update](#configuration-update)
-    - [Kubernetes Update](#kubernetes-update)
+    - [Software Update](#kubernetes-update)
+    - [Provisioning new kubernetes workers (after first time deployment)](#provisioning-new-kubernetes-workers)
 - [Services](#services)
     - [Fundamental Services](#fundamental-services)
     - [Extra Services with `helm`](#extra-services-with-helm)
@@ -19,6 +20,7 @@ No `Ansible`, just plain shell scripts
         - [Monitoring Service](#monitoring-service)
 - [Service Mesh](#service-mesh)
     - [Install `istio` via helm](#install-istio-via-helm)
+    - [Deploy demo service mesh app `bookinfo`](#deploy-demo-service-mesh-app-bookinfo)
 - [References](#references)
 
 ## Prerequisite
@@ -31,7 +33,7 @@ Please make sure
 ### Serverside
 
 - System
-    - ubuntu 18.04
+    - Ubuntu 18.04
 - Software
     - ssh, scp (with public-key installed)
 
@@ -40,6 +42,7 @@ Please make sure
 - [`cfssl`](https://github.com/cloudflare/cfssl#installation)
 - [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - [`helm`](https://github.com/helm/helm#install) (optional, if you want to deploy services via `helm`)
+- [`istioctl`]() (optional, if you want to deploy service mesh demo app)
 
 ## General steps
 
@@ -93,13 +96,36 @@ $ ./x-helper.sh config_local_kubectl
 $ ./x-helper.sh update_conf
 ```
 
-### Kubernetes Update
+### Software Update
 
 1. Edit `env.sh` with your favourite editor, then download and redeploy all files to your servers
 
 ```bash
 $ ./x-helper.sh download_all && ./x-helper.sh prepare_bin_all
 $ ./x-helper.sh upload_all && ./x-helper.sh deploy_all
+```
+
+### Provisioning new kubernetes workers
+
+In case you want to extend your cluster with more kubernetes workers and without any data loss or service interrupton after the first time deployment, we provide the following method
+
+__NOTE:__ Assuming you are at `/path/to/homelab/kube`
+
+1.Start with a copied project
+
+```bash
+$ cd ../..
+$ cp -a homelab homelab-new
+$ cd homelab-new/kube
+```
+
+2.Config `env.sh` for your new workers (keep controllers config as is)
+
+3.Generate worker configurations and deploy to new workers
+
+```bash
+$ ./x-helper.sh gen_worker_all && ./x-helper.sh upload_worker_all
+$ ./x-helper.sh deploy_worker_all
 ```
 
 ## Services
@@ -131,7 +157,7 @@ $ kubectl create -f services/metrics-server/deploy/1.8+
 ```bash
 $ kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
 
-# in China, you can use aliyun google container mirror
+# In China, you can use aliyun google container mirror
 # $ kubectl create -f services/kube-dashboard/kube-dashboard.cn.yaml
 
 # (optional, not recommended if you are using public servers)
@@ -208,14 +234,63 @@ $ kubectl create ns istio-system
 
 ```bash
 $ helm install services/istio/install/kubernetes/helm/istio --name istio --namespace istio-system
+# wait for a while, this could take some time
 
 # Again, In China, you can use docker mirror to install istio
 # $ helm install services/istio-cn --name istio --namespace istio-system
 
 # uninstalling
 # $ helm del --purge istio
-# $ kubectl delete crd --all
+# $ kubectl -n istio-system delete crd --all
 # $ kubectl -n istio-system delete customresourcedefinitions.apiextensions.k8s.io --all
+```
+
+### Deploy demo service mesh app `bookinfo`
+
+1.Create `demo` namespace for management ease
+
+```bash
+$ kubectl create namespace demo
+```
+
+2.Label `demo` namespace for automatic istio sidecar injection
+
+```bash
+$ kubectl label namespaces demo istio-injection=enabled
+```
+
+3.Deploy `bookinfo` demo app to `demo` namespace
+
+```bash
+$ kubectl -n demo apply -f services/istio/samples/bookinfo/platform/kube/bookinfo.yaml
+
+# wait for a while, this could take some time
+```
+
+4.Create gateway for `bookinfo` app
+
+```bash
+$ kubectl -n demo apply -f services/istio/samples/bookinfo/networking/bookinfo-gateway.yaml
+```
+
+5.Access to `bookinfo` app via one of `istio-ingress-gateway`
+
+```bash
+$ export POD_NAME=$(kubectl get po -l istio=ingressgateway -n istio-system -o 'jsonpath={.items[0].metadata.name}')
+$ kubectl -n istio-system port-forward ${POD_NAME} 8080:80
+
+# check app working
+# open up your browser and navigate to http://127.0.0.1:8080/productpage
+# or use curl to check http status code
+# $ curl -o /dev/null -s -w "%{http_code}\n" http://127.0.0.1:8080/productpage
+# should give you output `200`
+```
+
+6.Change `bookinfo` routing
+
+```bash
+$ kubectl -n demo apply -f services/istio/samples/bookinfo/networking/destination-rule-all.yaml
+# refresh page or rerun curl and you will find differences!
 ```
 
 ## References
@@ -224,3 +299,5 @@ $ helm install services/istio/install/kubernetes/helm/istio --name istio --names
 - [kelseyhightower/kubernetes-the-hard-way](https://github.com/kelseyhightower/kubernetes-the-hard-way)
 - [Troubleshooting Kubernetes Networking Issues](https://gravitational.com/blog/troubleshooting-kubernetes-networking/)
 - [Configure RBAC In Your Kubernetes Cluster](https://docs.bitnami.com/kubernetes/how-to/configure-rbac-in-your-kubernetes-cluster/)
+- [Control Ingress Traffic](https://istio.io/docs/tasks/traffic-management/ingress)
+- [Bookinfo Application](https://istio.io/docs/examples/bookinfo/)

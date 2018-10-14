@@ -62,9 +62,9 @@ upload_conf() {
       ${GEN_DIR}/${WORKER}.kubeconfig \
       ${GEN_DIR}/${WORKER}-kubelet.yaml \
       ${GEN_DIR}/${WORKER}-network.yaml \
-      ${GEN_DIR}/${COMP_KUBE_PROXY}.kubeconfig \
-      ${GEN_DIR}/${COMP_KUBE_PROXY}-config.yaml \
-      ${GEN_DIR}/${COMP_KUBE_PROXY}.service \
+      ${GEN_DIR}/kube-proxy.kubeconfig \
+      ${GEN_DIR}/kube-proxy-config.yaml \
+      ${GEN_DIR}/kube-proxy.service \
       ${GEN_DIR}/containerd.config.toml \
       ${GEN_DIR}/containerd.service \
       ${GEN_DIR}/crictl.yaml \

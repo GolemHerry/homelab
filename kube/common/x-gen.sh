@@ -17,11 +17,11 @@ gen_ca() {
     "size": 2048
   },
   "names": [{
-    "C": "${CERT_COUNTRY}",
-    "L": "${CERT_LOCATION}",
+    "C": "${KUBE_CERT_COUNTRY}",
+    "L": "${KUBE_CERT_LOCATION}",
     "O": "Kubernetes",
-    "OU": "${CERT_ORG_UNIT}",
-    "ST": "${CERT_STATE}"
+    "OU": "${KUBE_CERT_ORG_UNIT}",
+    "ST": "${KUBE_CERT_STATE}"
   }]
 }
 EOF
@@ -37,11 +37,11 @@ EOF
     "size": 2048
   },
   "names": [{
-    "C": "${CERT_COUNTRY}",
-    "L": "${CERT_LOCATION}",
+    "C": "${KUBE_CERT_COUNTRY}",
+    "L": "${KUBE_CERT_LOCATION}",
     "O": "Kubernetes",
-    "OU": "${CERT_ORG_UNIT}",
-    "ST": "${CERT_STATE}"
+    "OU": "${KUBE_CERT_ORG_UNIT}",
+    "ST": "${KUBE_CERT_STATE}"
   }]
 }
 EOF
@@ -69,11 +69,11 @@ gen_admin_cert() {
     "size": 2048
   },
   "names": [{
-    "C": "${CERT_COUNTRY}",
-    "L": "${CERT_LOCATION}",
+    "C": "${KUBE_CERT_COUNTRY}",
+    "L": "${KUBE_CERT_LOCATION}",
     "O": "system:masters",
-    "OU": "${CERT_ORG_UNIT}",
-    "ST": "${CERT_STATE}"
+    "OU": "${KUBE_CERT_ORG_UNIT}",
+    "ST": "${KUBE_CERT_STATE}"
   }]
 }
 EOF
@@ -90,7 +90,7 @@ EOF
 
 # generate and sign cert for kube admin user
 gen_admin_conf() {
-  kubectl config set-cluster ${CLUSTER_NAME} \
+  kubectl config set-cluster ${KUBE_CLUSTER_NAME} \
     --certificate-authority=${GEN_DIR}/ca.pem \
     --embed-certs=true \
     --server=https://127.0.0.1:${KUBE_API_SERVER_PORT} \
@@ -102,12 +102,12 @@ gen_admin_conf() {
     --embed-certs=true \
     --kubeconfig=${GEN_DIR}/admin.kubeconfig
 
-  kubectl config set-context ${CONTEXT_NAME} \
-    --cluster=${CLUSTER_NAME} \
+  kubectl config set-context ${KUBE_CONTEXT_NAME} \
+    --cluster=${KUBE_CLUSTER_NAME} \
     --user=admin \
     --kubeconfig=${GEN_DIR}/admin.kubeconfig
 
-  kubectl config use-context ${CONTEXT_NAME} \
+  kubectl config use-context ${KUBE_CONTEXT_NAME} \
     --kubeconfig=${GEN_DIR}/admin.kubeconfig
 }
 
@@ -121,11 +121,11 @@ gen_kube_porxy_cert() {
     "size": 2048
   },
   "names": [{
-    "C": "${CERT_COUNTRY}",
-    "L": "${CERT_LOCATION}",
+    "C": "${KUBE_CERT_COUNTRY}",
+    "L": "${KUBE_CERT_LOCATION}",
     "O": "system:node-proxier",
-    "OU": "${CERT_ORG_UNIT}",
-    "ST": "${CERT_STATE}"
+    "OU": "${KUBE_CERT_ORG_UNIT}",
+    "ST": "${KUBE_CERT_STATE}"
   }]
 }
 EOF
@@ -148,7 +148,7 @@ apiVersion: kubeproxy.config.k8s.io/v1alpha1
 clientConnection:
   kubeconfig: "/var/lib/kube-proxy/kubeconfig"
 mode: "iptables"
-clusterCIDR: "${KUBE_CLUSTER_CIDR}"
+clusterCIDR: "${KUBE_PODS_CIDR}"
 EOF
 
   CFG_SYSTEMD_KUBE_PROXY=${GEN_DIR}/kube-proxy.service
@@ -168,10 +168,10 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-  kubectl config set-cluster ${CLUSTER_NAME} \
+  kubectl config set-cluster ${KUBE_CLUSTER_NAME} \
       --certificate-authority=${GEN_DIR}/ca.pem \
       --embed-certs=true \
-      --server=https://${KUBE_PUB_ADDR}:${KUBE_API_SERVER_PORT} \
+      --server=https://${HOMELAB_KUBE_PUB_ADDR}:${KUBE_API_SERVER_PORT} \
       --kubeconfig=${GEN_DIR}/kube-proxy.kubeconfig
 
   kubectl config set-credentials system:kube-proxy \
@@ -181,7 +181,7 @@ EOF
       --kubeconfig=${GEN_DIR}/kube-proxy.kubeconfig
 
   kubectl config set-context default \
-      --cluster=${CLUSTER_NAME} \
+      --cluster=${KUBE_CLUSTER_NAME} \
       --user=system:kube-proxy \
       --kubeconfig=${GEN_DIR}/kube-proxy.kubeconfig
 

@@ -113,11 +113,11 @@ gen_kubelet_cert() {
     "size": 2048
   },
   "names": [{
-    "C": "${CERT_COUNTRY}",
-    "L": "${CERT_LOCATION}",
+    "C": "${KUBE_CERT_COUNTRY}",
+    "L": "${KUBE_CERT_LOCATION}",
     "O": "system:nodes",
-    "OU": "${CERT_ORG_UNIT}",
-    "ST": "${CERT_STATE}"
+    "OU": "${KUBE_CERT_ORG_UNIT}",
+    "ST": "${KUBE_CERT_STATE}"
   }]
 }
 EOF
@@ -151,10 +151,10 @@ gen_kubelet_conf() {
     IFACE=${WORKER_NET_IFACE_LIST[${i}]}
 
     # generate kubelet kubeconfig
-    kubectl config set-cluster ${CLUSTER_NAME} \
+    kubectl config set-cluster ${KUBE_CLUSTER_NAME} \
         --certificate-authority=${CA_GEN_DIR}/ca.pem \
         --embed-certs=true \
-        --server=https://${KUBE_PUB_ADDR}:${KUBE_API_SERVER_PORT} \
+        --server=https://${HOMELAB_KUBE_PUB_ADDR}:${KUBE_API_SERVER_PORT} \
         --kubeconfig=${GEN_DIR}/${WORKER}.kubeconfig
 
     kubectl config set-credentials system:node:${WORKER} \
@@ -163,12 +163,12 @@ gen_kubelet_conf() {
         --embed-certs=true \
         --kubeconfig=${GEN_DIR}/${WORKER}.kubeconfig
 
-    kubectl config set-context ${CONTEXT_NAME} \
-        --cluster=${CLUSTER_NAME} \
+    kubectl config set-context ${KUBE_CONTEXT_NAME} \
+        --cluster=${KUBE_CLUSTER_NAME} \
         --user=system:node:${WORKER} \
         --kubeconfig=${GEN_DIR}/${WORKER}.kubeconfig
 
-    kubectl config use-context ${CONTEXT_NAME} \
+    kubectl config use-context ${KUBE_CONTEXT_NAME} \
         --kubeconfig=${GEN_DIR}/${WORKER}.kubeconfig
     
     CFG_CNI_BRIDGE=${GEN_DIR}/${WORKER}-cni-bridge.json
@@ -200,12 +200,12 @@ authentication:
   webhook:
     enabled: true
   x509:
-    clientCAFile: "/var/lib/${COMP_KUBE_API_SERVER}/ca.pem"
+    clientCAFile: "/var/lib/kubernetes/ca.pem"
 authorization:
   mode: Webhook
 clusterDomain: "cluster.local"
 clusterDNS:
-  - "${CLUSTER_DNS_SERVER}"
+  - "${KUBE_SVC_DNS}"
 podCIDR: "${POD_CIDR}"
 resolvConf: "/run/systemd/resolve/resolv.conf"
 runtimeRequestTimeout: "15m"
@@ -260,13 +260,13 @@ mkdir -p \\
   /opt/cni/bin \\
   /var/lib/kubelet \\
   /var/lib/kube-proxy \\
-  /var/lib/${COMP_KUBE_API_SERVER} \\
-  /var/run/${COMP_KUBE_API_SERVER} \\
+  /var/lib/kubernetes \\
+  /var/run/kubernetes \\
   /etc/containerd
 
 install_cert() {
   # Install certs for kubelet and kube-apiserver client
-  mv ca.pem /var/lib/${COMP_KUBE_API_SERVER}/
+  mv ca.pem /var/lib/kubernetes/
   mv ${WORKER}.pem ${WORKER}-key.pem /var/lib/kubelet/
 }
 

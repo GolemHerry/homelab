@@ -4,47 +4,37 @@ set -e
 
 source ./env.sh
 
+source ./x-helper-common.sh
+source ./x-helper-controller.sh
+source ./x-helper-worker.sh
+
 gen_ca() {
   pushd common
     ./x-gen.sh gen_ca
   popd
 }
 
-gen_cert() {
-  TARGETS=(controller worker common)
-  for T in ${TARGETS[@]}
-  do
-    pushd ${T}
-      ./x-gen.sh gen_cert &
-    popd
-  done
-  wait
+gen_all_cert() {
+  gen_common_cert
+  gen_ctrl_cert
+  gen_worker_cert
 }
 
-gen_conf() {
-  TARGETS=(controller worker common)
-  for T in ${TARGETS[@]}
-  do
-    pushd ${T}
-      ./x-gen.sh gen_conf
-    popd
-  done
+gen_all_conf() {
+  gen_common_conf
+  gen_ctrl_conf
+  gen_all_conf
 }
 
 gen_all() {
-  gen_cert
-  gen_conf
+  gen_all_cert
+  gen_all_conf
 }
 
 download_all() {
-  TARGETS=(controller worker common)
-  for T in ${TARGETS[@]}
-  do
-    pushd ${T}
-      ./x-get.sh &
-    popd
-  done
-  wait
+  download_common
+  download_controller
+  download_worker
 }
 
 prepare_bin_all() {
@@ -59,36 +49,21 @@ prepare_bin_all() {
 }
 
 upload_cert_all() {
-  TARGETS=(controller worker common)
-  for T in ${TARGETS[@]}
-  do
-    pushd ${T}
-      ./x-upload.sh upload_cert &
-    popd
-  done
-  wait
+  upload_common_cert
+  upload_ctrl_cert
+  upload_worker_cert
 }
 
 upload_conf_all() {
-  TARGETS=(controller worker common)
-  for T in ${TARGETS[@]}
-  do
-    pushd ${T}
-      ./x-upload.sh upload_conf &
-    popd
-  done
-  wait
+  upload_common_conf
+  upload_ctrl_conf
+  upload_worker_conf
 }
 
 upload_bin_all() {
-  TARGETS=(controller worker)
-  for T in ${TARGETS[@]}
-  do
-    pushd ${T}
-      ./x-upload.sh upload_bin &
-    popd
-  done
-  wait
+  upload_common_bin
+  upload_ctrl_bin
+  upload_worker_bin
 }
 
 upload_all() {
@@ -97,124 +72,21 @@ upload_all() {
   upload_bin_all
 }
 
-deploy_controllers() {
-  for i in ${!CTRL_LIST[@]}
-  do
-    CTRL=${CTRL_LIST[${i}]}
-    SSH_ADDR=${CTRL_EXTERN_IP_LIST[${i}]}
-    SSH_PORT=${CTRL_SSH_PORT_LIST[${i}]}
-    SSH_ID=${CTRL_SSH_ID_LIST[${i}]}
-    USER=${CTRL_SSH_USER_LIST[${i}]}
-    PASS=${CTRL_SSH_USER_PASS_LIST[${i}]}
-
-    echo "[DEPLOY] ${CTRL}"
-    ssh -p ${SSH_PORT} -i ${SSH_ID} ${USER}@${SSH_ADDR} \
-      "echo ${PASS} | sudo -S bash ~/${CTRL}-deploy.sh $1" &
-  done
-  wait
-}
-
-deploy_controllers_cert() {
-  deploy_controllers deploy_cert
-}
-
-deploy_controllers_conf() {
-  deploy_controllers deploy_conf
-}
-
-deploy_controllers_bin() {
-  deploy_controllers deploy_bin
-}
-
-deploy_controllers_all() {
-  deploy_controllers deploy_all
-}
-
-deploy_workers() {
-  for i in ${!WORKER_LIST[@]}
-  do
-    WORKER=${WORKER_LIST[${i}]}
-    SSH_ADDR=${WORKER_EXTERN_IP_LIST[${i}]}
-    SSH_PORT=${WORKER_SSH_PORT_LIST[${i}]}
-    SSH_ID=${WORKER_SSH_ID_LIST[${i}]}
-    USER=${WORKER_SSH_USER_LIST[${i}]}
-    PASS=${WORKER_SSH_USER_PASS_LIST[${i}]}
-
-    echo "[DEPLOY] ${WORKER}"
-    ssh -p ${SSH_PORT} -i ${SSH_ID} ${USER}@${SSH_ADDR} \
-      "echo ${PASS} | sudo -S bash ~/${WORKER}-deploy.sh $1" &
-  done
-  wait
-}
-
-deploy_workers_cert() {
-  deploy_workers deploy_cert
-}
-
-deploy_workers_conf() {
-  deploy_workers deploy_conf
-}
-
-deploy_workers_bin() {
-  deploy_workers deploy_bin
-}
-
-deploy_workers_all() {
-  deploy_workers deploy_all
-}
-
 deploy_all() {
-  deploy_controllers_all &
-  deploy_workers_all &
-  wait
+  deploy_ctrl_all
+  deploy_workers_all
 }
 
 update_conf() {
   gen_conf
   upload_conf_all
-  deploy_controllers_conf &
-  deploy_workers_conf &
-  wait
-}
-
-reboot_controllers() {
-  for i in ${!CTRL_LIST[@]}
-  do
-    CTRL=${CTRL_LIST[${i}]}
-    SSH_ADDR=${CTRL_EXTERN_IP_LIST[${i}]}
-    SSH_PORT=${CTRL_SSH_PORT_LIST[${i}]}
-    SSH_ID=${CTRL_SSH_ID_LIST[${i}]}
-    USER=${CTRL_SSH_USER_LIST[${i}]}
-    PASS=${CTRL_SSH_USER_PASS_LIST[${i}]}
-
-    echo "[REBOOT] ${CTRL}"
-    ssh -p ${SSH_PORT} -i ${SSH_ID} ${USER}@${SSH_ADDR} \
-      "echo ${PASS} | sudo -S reboot" &
-  done
-  wait
-}
-
-reboot_workers() {
-  for i in ${!WORKER_LIST[@]}
-  do
-    WORKER=${WORKER_LIST[${i}]}
-    SSH_ADDR=${WORKER_EXTERN_IP_LIST[${i}]}
-    SSH_PORT=${WORKER_SSH_PORT_LIST[${i}]}
-    SSH_ID=${WORKER_SSH_ID_LIST[${i}]}
-    USER=${WORKER_SSH_USER_LIST[${i}]}
-    PASS=${WORKER_SSH_USER_PASS_LIST[${i}]}
-
-    echo "[REBOOT] ${WORKER}"
-    ssh -p ${SSH_PORT} -i ${SSH_ID} ${USER}@${SSH_ADDR} \
-      "echo ${PASS} | sudo -S reboot" &
-  done
-  wait
+  deploy_ctrl_conf
+  deploy_workers_conf
 }
 
 reboot_all() {
-  reboot_workers &
-  reboot_controllers &
-  wait
+  reboot_workers
+  reboot_ctrl
 }
 
 config_local_kubectl() {
@@ -227,11 +99,11 @@ config_local_kubectl() {
     --client-certificate=./common/${GEN_DIR}/admin.pem \
     --client-key=./common/${GEN_DIR}/admin-key.pem
 
-  kubectl config set-context ${CONTEXT_NAME} \
+  kubectl config set-context ${KUBE_CONTEXT_NAME} \
     --cluster=${CLUSTER_NAME} \
     --user=admin
 
-  kubectl config use-context ${CONTEXT_NAME}
+  kubectl config use-context ${KUBE_CONTEXT_NAME}
 }
 
 $@

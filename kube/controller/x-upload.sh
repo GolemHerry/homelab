@@ -40,10 +40,10 @@ upload_cert() {
     SSH_ID=${CTRL_SSH_ID_LIST[${i}]}
     USER=${CTRL_SSH_USER_LIST[${i}]}
 
-    TO_UPLOAD="${GEN_DIR}/${COMP_KUBE_SERVICE_ACCOUNT}.pem \
-      ${GEN_DIR}/${COMP_KUBE_SERVICE_ACCOUNT}-key.pem \
-      ${GEN_DIR}/${COMP_KUBE_API_SERVER}.pem \
-      ${GEN_DIR}/${COMP_KUBE_API_SERVER}-key.pem \
+    TO_UPLOAD="${GEN_DIR}/kube-service-account.pem \
+      ${GEN_DIR}/kube-service-account-key.pem \
+      ${GEN_DIR}/kubernetes.pem \
+      ${GEN_DIR}/kubernetes-key.pem \
       ${GEN_DIR}/encryption-config.yaml \
       ${GEN_DIR}/RBAC-*.yaml \
       ${GEN_DIR}/${CTRL}-deploy.sh"
@@ -62,11 +62,11 @@ upload_conf() {
     SSH_ID=${CTRL_SSH_ID_LIST[${i}]}
     USER=${CTRL_SSH_USER_LIST[${i}]}
 
-    TO_UPLOAD="${GEN_DIR}/${COMP_KUBE_CTRL_MGR}.kubeconfig \
-      ${GEN_DIR}/${COMP_KUBE_CTRL_MGR}.service \
-      ${GEN_DIR}/${COMP_KUBE_SCHEDULER}.kubeconfig \
-      ${GEN_DIR}/${COMP_KUBE_SCHEDULER}.service \
-      ${GEN_DIR}/${COMP_KUBE_SCHEDULER}.yaml \
+    TO_UPLOAD="${GEN_DIR}/kube-controller-manager.kubeconfig \
+      ${GEN_DIR}/kube-controller-manager.service \
+      ${GEN_DIR}/kube-scheduler.kubeconfig \
+      ${GEN_DIR}/kube-scheduler.service \
+      ${GEN_DIR}/kube-scheduler.yaml \
       ${GEN_DIR}/${CTRL}-kube-apiserver.service \
       ${GEN_DIR}/${CTRL}.etcd.service \
       ${GEN_DIR}/healthcheck.nginx \
