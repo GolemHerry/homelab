@@ -1,3 +1,5 @@
+#!/bin/bash
+
 CTRL_DIR=controller
 
 source ./env.sh

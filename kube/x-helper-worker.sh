@@ -1,3 +1,5 @@
+#!/bin/bash
+
 WORKER_DIR=worker
 
 source ./env.sh

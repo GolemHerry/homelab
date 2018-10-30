@@ -1,3 +1,5 @@
+#!/bin/bash
+
 COMMON_DIR=common
 
 gen_common_cert() {

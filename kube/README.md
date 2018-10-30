@@ -21,6 +21,7 @@ No `Ansible`, just plain shell scripts
 - [Service Mesh](#service-mesh)
     - [Install `istio` via helm](#install-istio-via-helm)
     - [Deploy demo service mesh app `bookinfo`](#deploy-demo-service-mesh-app-bookinfo)
+- [Ingress with `ingress-nginx`](#ingress)
 - [References](#references)
 
 ## Prerequisite
@@ -242,7 +243,6 @@ $ helm install services/istio/install/kubernetes/helm/istio --name istio --names
 # uninstalling
 # $ helm del --purge istio
 # $ kubectl -n istio-system delete crd --all
-# $ kubectl -n istio-system delete customresourcedefinitions.apiextensions.k8s.io --all
 ```
 
 ### Deploy demo service mesh app `bookinfo`
@@ -290,7 +290,23 @@ $ kubectl -n istio-system port-forward ${POD_NAME} 8080:80
 
 ```bash
 $ kubectl -n demo apply -f services/istio/samples/bookinfo/networking/destination-rule-all.yaml
-# refresh page or rerun curl and you will find differences!
+# refresh page and you will find differences!
+```
+
+## Ingress
+
+We will setup ingress with `ingress-nginx` and `envoy` for remote service access
+
+1.Deploy `nginx-ingress` to your `Kubernetes` cluster
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/mandatory.yaml
+```
+
+2.Deploy `NodePort` to your cluster, since we are using bare-metal
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/provider/baremetal/service-nodeport.yaml
 ```
 
 ## References
