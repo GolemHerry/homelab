@@ -90,7 +90,7 @@ reboot_all() {
 }
 
 config_local_kubectl() {
-  kubectl config set-cluster ${CLUSTER_NAME} \
+  kubectl config set-cluster ${KUBE_CLUSTER_NAME} \
     --certificate-authority=./common/${GEN_DIR}/ca.pem \
     --embed-certs=true \
     --server=https://${REMOTE_KUBE_PUB_ADDR}:${REMOTE_KUBE_LISTEN_PORT}
@@ -100,7 +100,7 @@ config_local_kubectl() {
     --client-key=./common/${GEN_DIR}/admin-key.pem
 
   kubectl config set-context ${KUBE_CONTEXT_NAME} \
-    --cluster=${CLUSTER_NAME} \
+    --cluster=${KUBE_CLUSTER_NAME} \
     --user=admin
 
   kubectl config use-context ${KUBE_CONTEXT_NAME}
