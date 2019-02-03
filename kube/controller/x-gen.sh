@@ -5,6 +5,7 @@ set -e
 _KUBE_DIR=..
 
 source ${_KUBE_DIR}/env.sh
+source ${_KUBE_DIR}/base.sh
 
 CA_DIR=${_KUBE_DIR}/common
 CA_GEN_DIR=${_KUBE_DIR}/common/${GEN_DIR}
@@ -39,7 +40,7 @@ ExecStart=/usr/local/bin/etcd \\
   --listen-peer-urls https://${INTERN_IP}:${P_PORT} \\
   --listen-client-urls https://${INTERN_IP}:${C_PORT},https://127.0.0.1:${C_PORT} \\
   --advertise-client-urls https://${INTERN_IP}:${C_PORT} \\
-  --initial-cluster-token ${KUBE_ETCD_KUBE_CLUSTER_NAME} \\
+  --initial-cluster-token ${KUBE_ETCD_CLUSTER_NAME} \\
   --initial-cluster ${ETCD_INITIAL_CLUSTERS} \\
   --initial-cluster-state new \\
   --data-dir=/var/lib/etcd
@@ -93,7 +94,7 @@ gen_common_conf() {
     kubectl config set-cluster ${KUBE_CLUSTER_NAME} \
       --certificate-authority=${CA_GEN_DIR}/ca.pem \
       --embed-certs=true \
-      --server=https://127.0.0.1:${KUBE_API_SERVER_PORT} \
+      --server=https://127.0.0.1:${HOMELAB_KUBE_API_SERVER_PORT} \
       --kubeconfig=${GEN_DIR}/${T}.kubeconfig
 
     kubectl config set-credentials system:${T} \
@@ -135,7 +136,7 @@ EOF
     -ca=${CA_GEN_DIR}/ca.pem \
     -ca-key=${CA_GEN_DIR}/ca-key.pem \
     -config=${CA_DIR}/ca-config.json \
-    -hostname=${WORKER_ADDR_LIST},${CTRL_ADDR_LIST},${KUBE_PUB_ADDR},${KUBE_SVC_KUBERNETES},127.0.0.1,kubernetes.default \
+    -hostname=${WORKER_ADDR_LIST},${CTRL_ADDR_LIST},${REMOTE_KUBE_PUB_ADDR},${KUBE_SVC_KUBERNETES},127.0.0.1,kubernetes.default \
     -profile=kubernetes \
     ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/kubernetes
 
@@ -234,7 +235,7 @@ EOF
 
 gen_kube_scheduler_conf() {
   cat > ${GEN_DIR}/kube-scheduler.yaml <<EOF
-apiVersion: componentconfig/v1alpha1
+apiVersion: kubescheduler.config.k8s.io/v1alpha1
 kind: KubeSchedulerConfiguration
 clientConnection:
   kubeconfig: "/var/lib/kubernetes/kube-scheduler.kubeconfig"
@@ -292,7 +293,7 @@ gen_kube_service_account_conf() {
   kubectl config set-cluster ${KUBE_CLUSTER_NAME} \
     --certificate-authority=${CA_GEN_DIR}/ca.pem \
     --embed-certs=true \
-    --server=https://127.0.0.1:${KUBE_API_SERVER_PORT} \
+    --server=https://127.0.0.1:${HOMELAB_KUBE_API_SERVER_PORT} \
     --kubeconfig=${GEN_DIR}/kube-service-account.kubeconfig
 
   kubectl config set-credentials system:kube-service-account \
@@ -373,7 +374,7 @@ server {
   server_name kubernetes.default.svc.cluster.local;
 
   location /healthz {
-     proxy_pass                    https://127.0.0.1:${KUBE_API_SERVER_PORT}/healthz;
+     proxy_pass                    https://127.0.0.1:${HOMELAB_KUBE_API_SERVER_PORT}/healthz;
      proxy_ssl_trusted_certificate /var/lib/kubernetes/ca.pem;
   }
 }
@@ -482,6 +483,7 @@ install_bin() {
   apt-get install -y nginx
 
   # Decompress components
+  tar xf common-comp.tar.xz
   tar xf controller-comp.tar.xz
   tar xf etcd-v${VER_ETCD}-linux-amd64.tar.gz
 

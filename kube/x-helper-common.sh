@@ -2,6 +2,9 @@
 
 COMMON_DIR=common
 
+source env.sh
+source base.sh
+
 gen_common_cert() {
   pushd ${COMMON_DIR}
     ./x-gen.sh gen_cert
@@ -19,9 +22,15 @@ gen_common_all() {
   gen_common_conf
 }
 
-download_common() {
+download_common_bin() {
   pushd ${COMMON_DIR}
     ./x-get.sh
+  popd
+}
+
+prepare_common_bin() {
+  pushd ${COMMON_DIR}
+    ./x-upload.sh prepare_bin
   popd
 }
 

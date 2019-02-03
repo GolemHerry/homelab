@@ -5,6 +5,7 @@ set -e
 _KUBE_DIR=..
 
 source ${_KUBE_DIR}/env.sh
+source ${_KUBE_DIR}/base.sh
 
 # generate ca
 gen_ca() {
@@ -93,7 +94,7 @@ gen_admin_conf() {
   kubectl config set-cluster ${KUBE_CLUSTER_NAME} \
     --certificate-authority=${GEN_DIR}/ca.pem \
     --embed-certs=true \
-    --server=https://127.0.0.1:${KUBE_API_SERVER_PORT} \
+    --server=https://127.0.0.1:${HOMELAB_KUBE_API_SERVER_PORT} \
     --kubeconfig=${GEN_DIR}/admin.kubeconfig
 
   kubectl config set-credentials admin \
@@ -165,13 +166,13 @@ Restart=on-failure
 RestartSec=5
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=multi-user.targetk
 EOF
 
   kubectl config set-cluster ${KUBE_CLUSTER_NAME} \
       --certificate-authority=${GEN_DIR}/ca.pem \
       --embed-certs=true \
-      --server=https://${HOMELAB_KUBE_PUB_ADDR}:${KUBE_API_SERVER_PORT} \
+      --server=https://${HOMELAB_KUBE_PUB_ADDR}:${HOMELAB_KUBE_API_SERVER_PORT} \
       --kubeconfig=${GEN_DIR}/kube-proxy.kubeconfig
 
   kubectl config set-credentials system:kube-proxy \

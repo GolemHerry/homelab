@@ -2,7 +2,8 @@
 
 CTRL_DIR=controller
 
-source ./env.sh
+source env.sh
+source base.sh
 
 gen_ctrl_cert() {
   pushd ${CTRL_DIR}
@@ -21,9 +22,15 @@ gen_ctrl_all() {
   gen_ctrl_conf
 }
 
-download_ctrl() {
+download_ctrl_bin() {
   pushd ${CTRL_DIR}
     ./x-get.sh
+  popd
+}
+
+prepare_ctrl_bin() {
+  pushd ${CTRL_DIR}
+    ./x-upload.sh prepare_bin
   popd
 }
 

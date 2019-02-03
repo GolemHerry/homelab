@@ -5,6 +5,7 @@ set -e
 _KUBE_DIR=..
 
 source ${_KUBE_DIR}/env.sh
+source ${_KUBE_DIR}/base.sh
 
 # kube-proxy is required by controller if you want to run metrics-server
 URL_KUBE_PROXY="https://storage.googleapis.com/kubernetes-release/release/v${VER_KUBE}/bin/linux/amd64/kube-proxy"

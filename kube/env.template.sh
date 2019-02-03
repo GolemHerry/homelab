@@ -127,55 +127,14 @@ export KUBE_CERT_STATE="Oregon"
 
 # 
 # 
-# VER section
+# VER(sion) section
 # 
 # 
-export VER_KUBE="1.12.1"
+export VER_KUBE="1.13.3"
 export VER_ETCD="3.3.10"
-export VER_CRICTL="1.12.0"
-export VER_RUNC="1.0.0-rc5"
+export VER_CRICTL="1.13.0"
+export VER_RUNC="1.0.0-rc6"
 export VER_RUNSC=""
-export VER_CONTAINERD="1.2.0-rc.0"
-export VER_CNI="0.3.1"
-export VER_CNI_PLUGINS="0.6.0"
-
-# 
-# 
-# DO NOT Edit Variables Below, Unless You Know What You Are Doing
-# 
-# 
-
-export GEN_DIR="generated"
-export DOWNLOAD_DIR="download"
-
-export WORKER_ADDR_LIST=""
-export CTRL_ADDR_LIST""
-export ETCD_INITIAL_CLUSTERS=""
-export ETCD_SERVERS=""
-
-for i in ${!WORKER_LIST[@]}
-do
-  INTERN_IP=${WORKER_INTERN_IP_LIST[${i}]}
-  EXTERN_IP=${WORKER_EXTERN_IP_LIST[${i}]}
-  POD_CIDR=${WORKER_POD_CIDR_LIST[$i]}
-
-  export WORKER_ADDR_LIST="${INTERN_IP},${EXTERN_IP},${WORKER_ADDR_LIST}"
-done
-
-for i in ${!CTRL_INTERN_IP_LIST[@]}
-do
-  INTERN_IP=${CTRL_INTERN_IP_LIST[${i}]}
-  EXTERN_IP=${CTRL_EXTERN_IP_LIST[${i}]}
-
-  export CTRL_ADDR_LIST="${INTERN_IP},${EXTERN_IP},${CTRL_ADDR_LIST}"
-done
-
-for i in ${!CTRL_LIST[@]}
-do
-  CONTROLLER=${CTRL_LIST[${i}]}
-  INTERN_IP=${CTRL_INTERN_IP_LIST[${i}]}
-  URL="https://${INTERN_IP}:${KUBE_ETCD_LISTEN_PEER_PORT}"
-
-  export ETCD_INITIAL_CLUSTERS="etcd-${CONTROLLER}=${URL},${ETCD_INITIAL_CLUSTERS}"
-  export ETCD_SERVERS="https://${INTERN_IP}:${KUBE_ETCD_LISTEN_CLIENT_PORT},${ETCD_SERVERS}"
-done
+export VER_CONTAINERD="1.2.2"
+export VER_CNI="0.6.0"
+export VER_CNI_PLUGINS="0.7.4"

@@ -5,6 +5,7 @@ set -e
 _KUBE_DIR=..
 
 source ${_KUBE_DIR}/env.sh
+source ${_KUBE_DIR}/base.sh
 
 BIN_TAR="worker-comp.tar.xz"
 
@@ -58,30 +59,21 @@ upload_conf() {
     SSH_ID=${WORKER_SSH_ID_LIST[${i}]}
     USER=${WORKER_SSH_USER_LIST[${i}]}
 
-    TO_UPLOAD="${GEN_DIR}/kubelet.service \
-      ${GEN_DIR}/${WORKER}.kubeconfig \
-      ${GEN_DIR}/${WORKER}-kubelet.yaml \
-      ${GEN_DIR}/${WORKER}-network.yaml \
-      ${GEN_DIR}/kube-proxy.kubeconfig \
-      ${GEN_DIR}/kube-proxy-config.yaml \
-      ${GEN_DIR}/kube-proxy.service \
+    TO_UPLOAD="${GEN_DIR}/cni-loopback.json \
       ${GEN_DIR}/containerd.config.toml \
       ${GEN_DIR}/containerd.service \
       ${GEN_DIR}/crictl.yaml \
-      ${GEN_DIR}/kube-sysctl.conf \
-      ${GEN_DIR}/cni-loopback.json \
       ${GEN_DIR}/${WORKER}-cni-bridge.json \
-      ${GEN_DIR}/${WORKER}-deploy.sh"
+      ${GEN_DIR}/${WORKER}.kubeconfig \
+      ${GEN_DIR}/${WORKER}-kubelet.yaml \
+      ${GEN_DIR}/${WORKER}-network.yaml \
+      ${GEN_DIR}/${WORKER}-deploy.sh \
+      ${GEN_DIR}/kubelet.service \
+      ${GEN_DIR}/sysctl.conf"
 
     scp -P ${SSH_PORT} -i ${SSH_ID} ${TO_UPLOAD} ${USER}@${SSH_ADDR}:~/ &
   done
   wait
 }
 
-upload_all() {
-  upload_cert &
-  upload_conf &
-  upload_bin &
-}
-
-$@
+"$@"

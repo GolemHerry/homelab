@@ -5,6 +5,7 @@ set -e
 _KUBE_DIR=..
 
 source ${_KUBE_DIR}/env.sh
+source ${_KUBE_DIR}/base.sh
 
 URL_KUBE_API_SERVER="https://storage.googleapis.com/kubernetes-release/release/v${VER_KUBE}/bin/linux/amd64/kube-apiserver"
 

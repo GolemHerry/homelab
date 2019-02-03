@@ -2,7 +2,8 @@
 
 WORKER_DIR=worker
 
-source ./env.sh
+source env.sh
+source base.sh
 
 gen_worker_cert() {
   pushd ${WORKER_DIR}
@@ -21,9 +22,15 @@ gen_worker_all() {
   gen_worker_conf
 }
 
-download_worker() {
+download_worker_bin() {
   pushd ${WORKER_DIR}
     ./x-get.sh
+  popd
+}
+
+prepare_worker_bin() {
+  pushd ${WORKER_DIR}
+    ./x-upload.sh prepare_bin
   popd
 }
 

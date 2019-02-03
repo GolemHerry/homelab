@@ -3,7 +3,9 @@
 set -e
 
 _KUBE_DIR=..
+
 source ${_KUBE_DIR}/env.sh
+source ${_KUBE_DIR}/base.sh
 
 CA_DIR=${_KUBE_DIR}/common
 CA_GEN_DIR=${_KUBE_DIR}/common/${GEN_DIR}
@@ -154,7 +156,7 @@ gen_kubelet_conf() {
     kubectl config set-cluster ${KUBE_CLUSTER_NAME} \
         --certificate-authority=${CA_GEN_DIR}/ca.pem \
         --embed-certs=true \
-        --server=https://${HOMELAB_KUBE_PUB_ADDR}:${KUBE_API_SERVER_PORT} \
+        --server=https://${HOMELAB_KUBE_PUB_ADDR}:${HOMELAB_KUBE_API_SERVER_PORT} \
         --kubeconfig=${GEN_DIR}/${WORKER}.kubeconfig
 
     kubectl config set-credentials system:node:${WORKER} \
@@ -300,6 +302,7 @@ install_bin() {
   apt-get -y install socat conntrack ipset
 
   # decompress worker components
+  tar xf common-comp.tar.xz
   tar xf worker-comp.tar.xz
   tar xf crictl-v${VER_CRICTL}-linux-amd64.tar.gz -C /usr/local/bin/
   tar xf cni-plugins-amd64-v${VER_CNI_PLUGINS}.tgz -C /opt/cni/bin/
