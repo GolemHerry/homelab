@@ -69,7 +69,8 @@ upload_conf() {
       ${GEN_DIR}/${WORKER}-network.yaml \
       ${GEN_DIR}/${WORKER}-deploy.sh \
       ${GEN_DIR}/kubelet.service \
-      ${GEN_DIR}/sysctl.conf"
+      ${GEN_DIR}/sysctl.conf \
+      ${GEN_DIR}/${WORKER}-deploy.sh"
 
     scp -P ${SSH_PORT} -i ${SSH_ID} ${TO_UPLOAD} ${USER}@${SSH_ADDR}:~/ &
   done

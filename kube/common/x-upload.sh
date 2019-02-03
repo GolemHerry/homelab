@@ -114,7 +114,7 @@ upload_bin() {
 
     scp -P ${SSH_PORT} -i ${SSH_ID} ${TO_UPLOAD} ${USER}@${SSH_ADDR}:~/ &
   done
-  wait  
+  wait
 }
 
 $@

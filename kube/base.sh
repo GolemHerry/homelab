@@ -51,4 +51,3 @@ do
     export ETCD_SERVERS="https://${INTERN_IP}:${KUBE_ETCD_LISTEN_CLIENT_PORT}"
   fi
 done
-

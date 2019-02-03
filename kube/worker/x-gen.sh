@@ -309,7 +309,7 @@ install_bin() {
   tar xf containerd-${VER_CONTAINERD}.linux-amd64.tar.gz -C /
 
   # Install bin
-  mv runsc* runsc
+
   mv runc.amd64 runc
   chmod +x kubectl kube-proxy kubelet runc runsc
   mv kubectl kube-proxy kubelet runc runsc /usr/local/bin/

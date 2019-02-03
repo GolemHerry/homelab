@@ -166,7 +166,7 @@ Restart=on-failure
 RestartSec=5
 
 [Install]
-WantedBy=multi-user.targetk
+WantedBy=multi-user.target
 EOF
 
   kubectl config set-cluster ${KUBE_CLUSTER_NAME} \
