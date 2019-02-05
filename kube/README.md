@@ -18,6 +18,8 @@ No `Ansible`, just plain shell scripts
     - [Extra Services with `helm`](#extra-services-with-helm)
         - [Install `helm`](#install-helm)
         - [Monitoring Service](#monitoring-service)
+    - [Gitlab](#gitlab)
+      - [GitLab - Runner](#gitlab-runner)
 - [Service Mesh](#service-mesh)
     - [Install `istio` via helm](#install-istio-via-helm)
     - [Deploy demo service mesh app `bookinfo`](#deploy-demo-service-mesh-app-bookinfo)
@@ -219,6 +221,28 @@ $ kubectl --namespace monitoring get secret grafana -o jsonpath="{.data.admin-pa
 
 3.Configure your dashboard
 
+### GitLab
+
+1.Add `gitlab` helm chart repo and update
+
+```bash
+helm repo add gitlab https://charts.gitlab.io/ && helm repo update
+```
+
+2.Install `gitlab` with helm ([see - all options](https://gitlab.com/charts/gitlab/blob/master/doc/installation/command-line-options.md))
+
+```bash
+helm upgrade --install gitlab gitlab/gitlab \
+  --timeout 600 \
+  --set global.hosts.domain= \
+  --set global.hosts.externalIP= \
+  --set certmanager-issuer.email=
+```
+
+#### GitLab Runner
+
+<!-- TODO -->
+
 ## Service Mesh
 
 ### Install `istio` via helm
@@ -317,3 +341,5 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/mast
 - [Configure RBAC In Your Kubernetes Cluster](https://docs.bitnami.com/kubernetes/how-to/configure-rbac-in-your-kubernetes-cluster/)
 - [Control Ingress Traffic](https://istio.io/docs/tasks/traffic-management/ingress)
 - [Bookinfo Application](https://istio.io/docs/examples/bookinfo/)
+- [GitLab Helm Chart](https://docs.gitlab.com/ee/install/kubernetes/gitlab_chart.html)
+- [GitLab Runner Helm Chart](https://docs.gitlab.com/ee/install/kubernetes/gitlab_runner_chart.html)
