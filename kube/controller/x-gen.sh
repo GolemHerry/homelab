@@ -19,7 +19,7 @@ gen_etcd_conf() {
     C_PORT=${KUBE_ETCD_LISTEN_CLIENT_PORT}
     P_PORT=${KUBE_ETCD_LISTEN_PEER_PORT}
 
-    cat > ${GEN_DIR}/${CTRL}.etcd.service <<EOF
+    cat > ${GEN_DIR}/${CTRL}.etcd.service << EOF
 # filename: /etc/systemd/system/etcd.service
 [Unit]
 Description=etcd
@@ -60,7 +60,7 @@ gen_common_cert() {
   do
     CERT_CSR_CFG=${GEN_DIR}/csr-${T}.json
     
-    cat > ${CERT_CSR_CFG} <<EOF
+    cat > ${CERT_CSR_CFG} << EOF
 {
   "CN": "system:${T}",
   "key": {
@@ -115,7 +115,7 @@ gen_common_conf() {
 
 gen_kube_apiserver_cert() {
   CERT_CSR_CFG=${GEN_DIR}/kubernetes.json
-  cat > ${CERT_CSR_CFG} <<EOF
+  cat > ${CERT_CSR_CFG} << EOF
 {
   "CN": "kubernetes",
   "key": {
@@ -148,7 +148,7 @@ gen_kube_apiserver_conf() {
   do
     CTRL=${CTRL_LIST[${i}]}
     INTERN_IP=${CTRL_INTERN_IP_LIST[${i}]}
-    cat > ${GEN_DIR}/${CTRL}-kube-apiserver.service <<EOF
+    cat > ${GEN_DIR}/${CTRL}-kube-apiserver.service << EOF
 [Unit]
 Description=Kubernetes API Server
 Documentation=https://github.com/kubernetes/kubernetes
@@ -206,7 +206,7 @@ EOF
 }
 
 gen_kube_controller_manager_conf() {
-  cat > ${GEN_DIR}/kube-controller-manager.service <<EOF
+  cat > ${GEN_DIR}/kube-controller-manager.service << EOF
 [Unit]
 Description=Kubernetes Controller Manager
 Documentation=https://github.com/kubernetes/kubernetes
@@ -235,7 +235,7 @@ EOF
 }
 
 gen_kube_scheduler_conf() {
-  cat > ${GEN_DIR}/kube-scheduler.yaml <<EOF
+  cat > ${GEN_DIR}/kube-scheduler.yaml << EOF
 apiVersion: kubescheduler.config.k8s.io/v1alpha1
 kind: KubeSchedulerConfiguration
 clientConnection:
@@ -244,7 +244,7 @@ leaderElection:
   leaderElect: true
 EOF
 
-  cat > ${GEN_DIR}/kube-scheduler.service <<EOF
+  cat > ${GEN_DIR}/kube-scheduler.service << EOF
 [Unit]
 Description=Kubernetes Scheduler
 Documentation=https://github.com/kubernetes/kubernetes
@@ -263,7 +263,7 @@ EOF
 
 gen_kube_service_account_cert() {
   CERT_CSR_CFG=${GEN_DIR}/csr-kube-service-account.json
-  cat > ${CERT_CSR_CFG} <<EOF
+  cat > ${CERT_CSR_CFG} << EOF
 {
   "CN": "kube-service-accounts",
   "key": {
@@ -314,7 +314,7 @@ gen_kube_service_account_conf() {
 
 gen_encryption_key() {
   ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64)
-  cat > ${GEN_DIR}/encryption-config.yaml <<EOF
+  cat > ${GEN_DIR}/encryption-config.yaml << EOF
 kind: EncryptionConfig
 apiVersion: v1
 resources:
@@ -330,7 +330,7 @@ EOF
 }
 
 gen_deploy_script() {
-  cat > ${GEN_DIR}/RBAC-create.yaml <<EOF
+  cat > ${GEN_DIR}/RBAC-create.yaml << EOF
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -352,7 +352,7 @@ rules:
       - "*"
 EOF
 
-  cat > ${GEN_DIR}/RBAC-bind.yaml <<EOF
+  cat > ${GEN_DIR}/RBAC-bind.yaml << EOF
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -369,7 +369,7 @@ subjects:
 EOF
 
   CFG_HEALTH_CHECK=${GEN_DIR}/healthcheck.nginx
-  cat > ${CFG_HEALTH_CHECK} <<EOF
+  cat > ${CFG_HEALTH_CHECK} << EOF
 server {
   listen      80;
   server_name kubernetes.default.svc.cluster.local;
@@ -393,7 +393,7 @@ EOF
       do
         W_POD_CIDR=${WORKER_POD_CIDR_LIST[${j}]}
         W_INTERN_IP=${WORKER_INTERN_IP_LIST[${j}]}
-        CFG_NET_ROUTE=$(cat <<EOF
+        CFG_NET_ROUTE=$(cat << EOF
       - to: ${W_POD_CIDR}
         via: ${W_INTERN_IP}
 ${CFG_NET_ROUTE}
@@ -402,7 +402,7 @@ EOF
   done
 
   CFG_NETWORK=${GEN_DIR}/${CTRL}-network.yaml
-  cat > ${CFG_NETWORK} <<EOF
+  cat > ${CFG_NETWORK} << EOF
 network:
   ethernets:
     ${IFACE}:
@@ -421,7 +421,7 @@ ${CFG_NET_ROUTE}
 EOF
 
     SCRIPT=${GEN_DIR}/${CTRL}-deploy.sh
-    cat > ${SCRIPT} <<EOF
+    cat > ${SCRIPT} << EOF
 #!/bin/bash
 set -e
 

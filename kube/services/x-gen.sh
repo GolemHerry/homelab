@@ -10,7 +10,7 @@ source ${_KUBE_DIR}/base.sh
 gen_coredns_conf() {
   mkdir -p coredns
   pushd coredns
-  cat > coredns.yaml <<EOF
+  cat > coredns.yaml << EOF
 apiVersion: v1
 kind: ServiceAccount
 metadata:

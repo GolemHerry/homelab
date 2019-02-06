@@ -10,7 +10,7 @@ source ${_KUBE_DIR}/base.sh
 # generate ca
 gen_ca() {
   CERT_CSR_CFG=${GEN_DIR}/csr-ca.json
-  cat > ${CERT_CSR_CFG} <<EOF
+  cat > ${CERT_CSR_CFG} << EOF
 {
   "CN": "Kubernetes",
   "key": {
@@ -30,7 +30,7 @@ EOF
   cfssl gencert -initca ${CERT_CSR_CFG} | cfssljson -bare ${GEN_DIR}/ca
   
   AGGREGATOR_CA_CERT_CSR_CFG=${GEN_DIR}/csr-client-ca.json
-  cat > ${AGGREGATOR_CA_CERT_CSR_CFG} <<EOF
+  cat > ${AGGREGATOR_CA_CERT_CSR_CFG} << EOF
 {
   "CN": "front-proxy-client",
   "key": {
@@ -62,7 +62,7 @@ EOF
 
 gen_admin_cert() {
   CERT_CSR_CFG=${GEN_DIR}/csr-admin.json
-  cat > ${CERT_CSR_CFG} <<EOF
+  cat > ${CERT_CSR_CFG} << EOF
 {
   "CN": "admin",
   "key": {
@@ -114,7 +114,7 @@ gen_admin_conf() {
 
 gen_kube_porxy_cert() {
   CERT_CSR_CFG=${GEN_DIR}/csr-kube-proxy.json
-  cat > ${CERT_CSR_CFG} <<EOF
+  cat > ${CERT_CSR_CFG} << EOF
 {
   "CN": "system:kube-proxy",
   "key": {
@@ -143,7 +143,7 @@ EOF
 
 gen_kube_proxy_conf() {
   CFG_KUBE_PROXY=${GEN_DIR}/kube-proxy-config.yaml
-  cat > ${CFG_KUBE_PROXY} <<EOF
+  cat > ${CFG_KUBE_PROXY} << EOF
 kind: KubeProxyConfiguration
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 clientConnection:
@@ -153,7 +153,7 @@ clusterCIDR: "${KUBE_PODS_CIDR}"
 EOF
 
   CFG_SYSTEMD_KUBE_PROXY=${GEN_DIR}/kube-proxy.service
-  cat > ${CFG_SYSTEMD_KUBE_PROXY} <<EOF
+  cat > ${CFG_SYSTEMD_KUBE_PROXY} << EOF
 [Unit]
 Description=Kubernetes Kube Proxy
 Documentation=https://github.com/kubernetes/kubernetes
@@ -192,7 +192,7 @@ EOF
 
 gen_sysctl_conf() {
   CFG_SYSCTL=${GEN_DIR}/kube-sysctl.conf
-  cat > ${CFG_SYSCTL} <<EOF
+  cat > ${CFG_SYSCTL} << EOF
 # enable packet forwarding for IPv4
 net.ipv4.ip_forward=1
 # enable iptables rules to work on Linux bridges

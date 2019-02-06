@@ -12,7 +12,7 @@ CA_GEN_DIR=${_KUBE_DIR}/common/${GEN_DIR}
 
 gen_static_config() {
   CFG_CRICTL=${GEN_DIR}/crictl.yaml
-  cat > ${CFG_CRICTL} <<EOF
+  cat > ${CFG_CRICTL} << EOF
 runtime-endpoint: unix:///run/containerd/containerd.sock
 image-endpoint: unix:///run/containerd/containerd.sock
 timeout: 10
@@ -20,7 +20,7 @@ debug: false
 EOF
 
   CFG_CONTAINERD=${GEN_DIR}/containerd.config.toml
-  cat > ${CFG_CONTAINERD} <<EOF
+  cat > ${CFG_CONTAINERD} << EOF
 [plugins]
   [plugins.cri]
   sandbox_image = "registry.cn-hangzhou.aliyuncs.com/google_containers/pause-amd64:3.1"
@@ -44,15 +44,15 @@ EOF
         endpoint = ["https://registry-1.docker.io"]
 EOF
   CFG_CNI_LOOPBACK=${GEN_DIR}/cni-loopback.json
-  cat > ${CFG_CNI_LOOPBACK} <<EOF
+  cat > ${CFG_CNI_LOOPBACK} << EOF
 {
-  "cniVersion": "${VER_CNI}",
+  "cniVersion": "${VER_CNI_SPEC}",
   "type": "loopback"
 }
 EOF
   
   CFG_SYSTEMD_CONTAINERD=${GEN_DIR}/containerd.service
-  cat > ${CFG_SYSTEMD_CONTAINERD} <<EOF
+  cat > ${CFG_SYSTEMD_CONTAINERD} << EOF
 [Unit]
 Description=containerd container runtime
 Documentation=https://containerd.io
@@ -74,7 +74,7 @@ LimitCORE=infinity
 WantedBy=multi-user.target
 EOF
   CFG_SYSTEMD_KUBELET=${GEN_DIR}/kubelet.service
-  cat > ${CFG_SYSTEMD_KUBELET} <<EOF
+  cat > ${CFG_SYSTEMD_KUBELET} << EOF
 [Unit]
 Description=Kubernetes Kubelet
 Documentation=https://github.com/kubernetes/kubernetes
@@ -107,7 +107,7 @@ gen_kubelet_cert() {
     EXTERN_IP=${WORKER_EXTERN_IP_LIST[${i}]}
 
     CERT_CSR_CFG=${GEN_DIR}/csr-${WORKER}.json
-    cat > ${CERT_CSR_CFG} <<EOF
+    cat > ${CERT_CSR_CFG} << EOF
 {
   "CN": "system:node:${WORKER}",
   "key": {
@@ -174,9 +174,9 @@ gen_kubelet_conf() {
         --kubeconfig=${GEN_DIR}/${WORKER}.kubeconfig
     
     CFG_CNI_BRIDGE=${GEN_DIR}/${WORKER}-cni-bridge.json
-    cat > ${CFG_CNI_BRIDGE} <<EOF
+    cat > ${CFG_CNI_BRIDGE} << EOF
 {
-  "cniVersion": "${VER_CNI}",
+  "cniVersion": "${VER_CNI_SPEC}",
   "name": "bridge",
   "type": "bridge",
   "bridge": "cnio0",
@@ -193,7 +193,7 @@ gen_kubelet_conf() {
 EOF
 
     CFG_KUBELET=${GEN_DIR}/${WORKER}-kubelet.yaml
-    cat > ${CFG_KUBELET} <<EOF
+    cat > ${CFG_KUBELET} << EOF
 kind: KubeletConfiguration
 apiVersion: kubelet.config.k8s.io/v1beta1
 authentication:
@@ -215,27 +215,27 @@ tlsCertFile: "/var/lib/kubelet/${WORKER}.pem"
 tlsPrivateKeyFile: "/var/lib/kubelet/${WORKER}-key.pem"
 EOF
 
-  CFG_NET_ROUTE=""
+    CFG_NET_ROUTE=""
 
-  for j in ${!WORKER_LIST[@]}
-  do
-    X_POD_CIDR=${WORKER_POD_CIDR_LIST[${j}]}
-    X_INTERN_IP=${WORKER_INTERN_IP_LIST[${j}]}
+    for j in ${!WORKER_LIST[@]}
+    do
+      X_POD_CIDR=${WORKER_POD_CIDR_LIST[${j}]}
+      X_INTERN_IP=${WORKER_INTERN_IP_LIST[${j}]}
 
-    if [ ${X_INTERN_IP} = ${INTERN_IP} ]; then 
-      continue
-    else
-      CFG_NET_ROUTE=$(cat <<EOF
+      if [ ${X_INTERN_IP} = ${INTERN_IP} ]; then 
+        continue
+      else
+        CFG_NET_ROUTE=$(cat << EOF
       - to: ${X_POD_CIDR}
         via: ${X_INTERN_IP}
 ${CFG_NET_ROUTE}
 EOF
 )
-    fi
-  done
+      fi
+    done
 
   CFG_NETWORK=${GEN_DIR}/${WORKER}-network.yaml
-  cat > ${CFG_NETWORK} <<EOF
+  cat > ${CFG_NETWORK} << EOF
 network:
   ethernets:
     ${IFACE}:
@@ -253,7 +253,7 @@ ${CFG_NET_ROUTE}
 EOF
 
   DEPLOY_SCRIPT=${GEN_DIR}/${WORKER}-deploy.sh
-  cat > ${DEPLOY_SCRIPT} <<EOF
+  cat > ${DEPLOY_SCRIPT} << EOF
 #!/bin/bash -x
 set -e
 
