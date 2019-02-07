@@ -1,0 +1,93 @@
+net_scopes:
+  - name: homelab-net
+    network:
+      gateway: "172.16.0.1"
+      net_mask: 24
+      dns_servers:
+        - "172.16.0.1"
+
+  - name: iot-net
+    network:
+      gateway: "10.0.0.1"
+      net_mask: 24
+      dns_servers:
+        - "10.0.0.1"
+
+cluster:
+  name: homelab-k8s
+
+  kube_services:
+    cidr: "10.0.0.0/8"
+    dns_server: "10.255.255.254"
+    kubernetes: "10.0.0.1"
+
+  versions:
+    kubernetes: "1.13.3"
+    etcd: "3.3.10"
+    runc: "1.0.0-rc6"
+    runsc: "latest"
+    containerd: "1.2.3"
+    crictl: "1.13.0"
+    cni:
+      spec: "0.3.1"
+      plugins: "0.7.4"
+
+  kube_etcd_cluster:
+    name: etcd-cluster-for-homelab-k8s
+    port:
+      for_client: 2379
+      for_peer: 2380
+
+  certification:
+    org_unit: Kubernetes The Homelab Way
+    country_code: US
+    state: Oregon
+    location: Portland
+
+  masters:
+    - hostname: master-1
+      arch: amd64
+      servers:
+        kube_apiserver: "172.16.0.201"
+      network:
+        - iface: ens160
+          net_scope: homelab-net
+          private_address: "172.16.0.101"
+          public_address: "master-1.example.com"
+      ssh:
+        port: 22
+        identity: ~/.ssh/id.homelab-k8s.master
+        user: user
+        sudo_password: "my_sudo_password"
+
+  nodes:
+    - hostname: node-1
+      arch: amd64
+      servers:
+        kube_apiserver: "172.16.0.101:6443"
+      network:
+        - iface: ens160
+          net_scope: homelab-net
+          private_address: "172.16.0.201"
+          public_address: "node-1.example.com"
+      ssh:
+        port: 22
+        identity: ~/.ssh/id.homelab-k8s.node
+        user: user
+        sudo_password: my_sudo_password
+
+    # raspberry pi as a kubernetes node, in a different network
+    - hostname: raspberrypi
+      arch: arm
+      servers:
+        kube_apiserver: "kube.example.com:6443"
+      network:
+        - iface: wifi0
+          net_scope: iot-net
+          private_address: "10.0.0.201"
+          public_address: "rpi.example.com"
+      ssh:
+        port: 22
+        identity: ~/.ssh/id.homelab-k8s.node
+        user: user
+        sudo_password: my_sudo_password

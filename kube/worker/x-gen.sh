@@ -50,7 +50,7 @@ EOF
   "type": "loopback"
 }
 EOF
-  
+
   CFG_SYSTEMD_CONTAINERD=${GEN_DIR}/containerd.service
   cat > ${CFG_SYSTEMD_CONTAINERD} << EOF
 [Unit]

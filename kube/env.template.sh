@@ -51,9 +51,11 @@ export HOMELAB_KUBE_API_SERVER_PORT="6443"
 # 
 # 
 # public address and port for kube-apiserver 
+# 
 # if you want to enable remote access, you have to setup port-forward 
-# on your router if you are using NAT
-# if you don't need it, set them to be identical with 
+# on your router if you have NAT enabled
+# 
+# if you don't need it, set them to be empty or identical with 
 # HOMELAB_KUBE_PUB_ADDR and HOMELAB_KUBE_API_SERVER_PORT
 export REMOTE_KUBE_PUB_ADDR="1.1.1.1"
 export REMOTE_KUBE_API_SERVER_PORT="6443"
@@ -81,26 +83,26 @@ export WORKER_SSH_USER_PASS_LIST=("my_sudo_password" "my_sudo_password" "my_sudo
 # CTRL section
 # 
 # 
-# CTRL_LIST is not restricted by controller hostnames
-export CTRL_LIST=("my-kube-ctrl")
-export CTRL_NET_IFACE_LIST=("ens160")
-export CTRL_INTERN_IP_LIST=("10.100.100.100")
-export CTRL_EXTERN_IP_LIST=("1.3.3.1")
+# CTRL_LIST is NOT restricted by controller hostnames
+export CTRL_LIST=("my-kube-ctrl-1" "my-kube-ctrl-2" "my-kube-ctrl-3")
+export CTRL_NET_IFACE_LIST=("ens160" "ens160" "ens160")
+export CTRL_INTERN_IP_LIST=("172.16.0.201" "172.16.0.202" "172.16.0.203")
+export CTRL_EXTERN_IP_LIST=("1.3.3.1" "1.3.3.2" "1.3.3.3")
 # ssh config for maintaince
-export CTRL_SSH_PORT_LIST=("22")
-export CTRL_SSH_ID_LIST=("~/.ssh/id_rsa")
-export CTRL_SSH_USER_LIST=("user")
-export CTRL_SSH_USER_PASS_LIST=("my_sudo_password")
+export CTRL_SSH_PORT_LIST=("22" "22" "22")
+export CTRL_SSH_ID_LIST=("~/.ssh/id_rsa" "~/.ssh/id_rsa" "~/.ssh/id_rsa")
+export CTRL_SSH_USER_LIST=("user" "user" "user")
+export CTRL_SSH_USER_PASS_LIST=("my_sudo_password" "my_sudo_password" "my_sudo_password")
 
 # 
 # 
 # KUBE section
 # 
 # 
-export KUBE_CLUSTER_NAME="kubernetes-the-hard-way"
+export KUBE_CLUSTER_NAME="kubernetes-the-homelab-way"
 export KUBE_CONTEXT_NAME="default"
 export KUBE_NODE_PORT_RANGE="30000-32767"
-# pods cidr (cluster cidr in kubernetes) to include all worker pod ip address
+# pods cidr (cluster cidr in kubernetes) to cover all pod ip address
 export KUBE_PODS_CIDR="10.0.0.0/16"
 # IP range to assign to kubernetes services
 # MUST NOT overlap with any IP ranges assigned to nodes or pods
@@ -119,11 +121,11 @@ export KUBE_ETCD_CLUSTER_NAME="etcd-cluster-kube"
 export KUBE_ETCD_LISTEN_CLIENT_PORT="2379"
 export KUBE_ETCD_LISTEN_PEER_PORT="2380"
 
-# Kubernetes certificates (change them as you wish)
-export KUBE_CERT_ORG_UNIT="Kubernetes The Hard Way"
+# Kubernetes certification (change them as you wish)
+export KUBE_CERT_ORG_UNIT="Kubernetes The Homelab Way"
 export KUBE_CERT_COUNTRY="US"
-export KUBE_CERT_LOCATION="Portland"
 export KUBE_CERT_STATE="Oregon"
+export KUBE_CERT_LOCATION="Portland"
 
 # 
 # 

@@ -1,4 +1,6 @@
 /env.sh
+/cluster.config.yaml
+/cluster.config.yml
 
 generated/
 download/
