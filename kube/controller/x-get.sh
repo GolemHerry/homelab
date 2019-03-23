@@ -22,6 +22,9 @@ mkdir -p ${DOWNLOAD_DIR}
 
 pushd ${DOWNLOAD_DIR}
 wget -q --show-progress --https-only --timestamping \
-    "${URL_KUBE_API_SERVER}" "${URL_KUBE_CTRL_MGR}" \
-    "${URL_KUBE_SCHEDULER}" "${URL_KUBECTL}" "${URL_ETCD}"
+    "${URL_KUBE_API_SERVER}" \
+    "${URL_KUBE_CTRL_MGR}" \
+    "${URL_KUBE_SCHEDULER}" \
+    "${URL_KUBECTL}" \
+    "${URL_ETCD}"
 popd

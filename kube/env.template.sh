@@ -132,11 +132,11 @@ export KUBE_CERT_LOCATION="Portland"
 # VER(sion) section
 # 
 # 
-export VER_KUBE="1.13.3"
+export VER_KUBE="1.13.4"
 export VER_ETCD="3.3.10"
 export VER_CRICTL="1.13.0"
 export VER_RUNC="1.0.0-rc6"
 export VER_RUNSC=""
-export VER_CONTAINERD="1.2.2"
+export VER_CONTAINERD="1.2.5"
 export VER_CNI_SPEC="0.3.1"
 export VER_CNI_PLUGINS="0.7.4"

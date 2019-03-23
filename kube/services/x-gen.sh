@@ -105,7 +105,7 @@ spec:
           operator: "Exists"
       containers:
       - name: coredns
-        image: coredns/coredns:1.2.2
+        image: coredns/coredns:1.4.0
         imagePullPolicy: IfNotPresent
         resources:
           limits:
@@ -136,15 +136,6 @@ spec:
             drop:
             - all
           readOnlyRootFilesystem: true
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-            scheme: HTTP
-          initialDelaySeconds: 60
-          timeoutSeconds: 5
-          successThreshold: 1
-          failureThreshold: 5
       dnsPolicy: Default
       volumes:
         - name: config-volume

@@ -82,6 +82,8 @@ After=containerd.service
 Requires=containerd.service
 
 [Service]
+# turn off swap, or we need to set --fail-swap-on=false
+ExecStartPre=/sbin/swapoff -a
 ExecStart=/usr/local/bin/kubelet \\
   --config=/var/lib/kubelet/kubelet-config.yaml \\
   --container-runtime=remote \\

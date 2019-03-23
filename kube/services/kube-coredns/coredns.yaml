@@ -92,7 +92,7 @@ spec:
           operator: "Exists"
       containers:
       - name: coredns
-        image: coredns/coredns:1.2.2
+        image: coredns/coredns:1.4.0
         imagePullPolicy: IfNotPresent
         resources:
           limits:
@@ -123,15 +123,6 @@ spec:
             drop:
             - all
           readOnlyRootFilesystem: true
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-            scheme: HTTP
-          initialDelaySeconds: 60
-          timeoutSeconds: 5
-          successThreshold: 1
-          failureThreshold: 5
       dnsPolicy: Default
       volumes:
         - name: config-volume
@@ -156,7 +147,7 @@ metadata:
 spec:
   selector:
     k8s-app: kube-dns
-  clusterIP: 10.10.0.254
+  clusterIP: 10.1.255.254
   ports:
   - name: dns
     port: 53

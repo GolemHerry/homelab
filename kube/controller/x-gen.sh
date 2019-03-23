@@ -508,14 +508,13 @@ reload() {
 
 deploy_cert() {
   install_cert
+  reload
 
   ETCDCTL_API=3 etcdctl del --prefix / \\
     --endpoints=https://${INTERN_IP}:${KUBE_ETCD_LISTEN_CLIENT_PORT} \\
     --cacert=/etc/etcd/ca.pem \\
     --cert=/etc/etcd/kubernetes.pem \\
     --key=/etc/etcd/kubernetes-key.pem
-
-  reload
 
   echo "Waiting For Kubernetes-APIServer (30s)"
   sleep 30
@@ -543,14 +542,13 @@ deploy_all() {
   install_bin
   install_cert
   install_conf
+  reload
 
   ETCDCTL_API=3 etcdctl del --prefix / \\
     --endpoints=https://${INTERN_IP}:${KUBE_ETCD_LISTEN_CLIENT_PORT} \\
     --cacert=/etc/etcd/ca.pem \\
     --cert=/etc/etcd/kubernetes.pem \\
     --key=/etc/etcd/kubernetes-key.pem
-
-  reload
 
   echo "Waiting For Kubernetes-APIServer (30s)"
   sleep 30

@@ -24,6 +24,10 @@ mkdir -p ${DOWNLOAD_DIR}
 
 pushd ${DOWNLOAD_DIR}
 wget -q --show-progress --https-only --timestamping \
-  "${URL_CRICTL}" "${URL_KUBELET}" "${URL_RUNC}" "${URL_RUNSC}" \
-  "${URL_CONTAINERD}" "${URL_CNI_PLUGINS}"
+    "${URL_CRICTL}" \
+    "${URL_KUBELET}" \
+    "${URL_RUNC}" \
+    "${URL_RUNSC}" \
+    "${URL_CNI_PLUGINS}" \
+    "${URL_CONTAINERD}"
 popd
