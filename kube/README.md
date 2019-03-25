@@ -10,7 +10,7 @@ No `Ansible`, just plain shell scripts
 - [General steps](#general-steps)
 - [How to use](#how-to-use)
     - [First time deployment](#first-time-deployment)
-    - [Configuration Update](#configuration-update)
+    - [Cluster Configuration Update](#cluster-configuration-update)
     - [Software Update](#kubernetes-update)
     - [Provisioning new kubernetes workers (after first time deployment)](#provisioning-new-kubernetes-workers)
 - [Services](#services)
@@ -60,53 +60,53 @@ Please make sure
 
 ### First time deployment
 
-0.Copy and modify `env.sh` according to your homelab
+1. Copy and modify `env.sh` according to your homelab
 
-```bash
-$ cp env.template.sh env.sh
-# edit `env.sh` with your favourite editor
-```
+    ```bash
+    $ cp env.template.sh env.sh
+    # edit `env.sh` with your favourite editor
+    ```
 
-1.Generate CA, certificates and kubeconfig
+2. Generate CA, certificates and kubeconfig
 
-```bash
-$ ./x-helper.sh gen_ca && ./x-helper.sh gen_all
-```
+    ```bash
+    $ ./x-helper.sh gen_ca && ./x-helper.sh gen_all
+    ```
 
-2.Download all software required and prepare them for uploading
+3. Download all software required and prepare them for uploading
 
-```bash
-$ ./x-helper.sh download_all && ./x-helper.sh prepare_bin_all
-```
+    ```bash
+    $ ./x-helper.sh download_all && ./x-helper.sh prepare_bin_all
+    ```
 
-3.Upload all required files to your server, then deploy them
+4. Upload all required files to your server, then deploy them
 
-```bash
-$ ./x-helper.sh upload_all && ./x-helper.sh deploy_all
-```
+    ```bash
+    $ ./x-helper.sh upload_all && ./x-helper.sh deploy_all
+    ```
 
-4.Config local `kubectl`
+5. Config local `kubectl`
 
-```bash
-$ ./x-helper.sh config_local_kubectl
-```
+    ```bash
+    $ ./x-helper.sh config_local_kubectl
+    ```
 
-### Configuration Update
+### Cluster Configuration Update
 
 1. Edit `env.sh` with your favourite editor, then generate, upload configurations to your servers and deploy
 
-```bash
-$ ./x-helper.sh update_conf
-```
+    ```bash
+    $ ./x-helper.sh update_conf
+    ```
 
 ### Software Update
 
 1. Edit `env.sh` with your favourite editor, then download and redeploy all files to your servers
 
-```bash
-$ ./x-helper.sh download_all && ./x-helper.sh prepare_bin_all
-$ ./x-helper.sh upload_all && ./x-helper.sh deploy_all
-```
+    ```bash
+    $ ./x-helper.sh download_all && ./x-helper.sh prepare_bin_all
+    $ ./x-helper.sh upload_all && ./x-helper.sh deploy_all
+    ```
 
 ### Provisioning new kubernetes workers
 
@@ -114,59 +114,62 @@ In case you want to extend your cluster with more kubernetes workers and without
 
 __NOTE:__ Assuming you are at `/path/to/homelab/kube`
 
-1.Start with a copied project
+1. Start with a copied project
 
-```bash
-$ cd ../..
-$ cp -a homelab homelab-new
-$ cd homelab-new/kube
-```
+    ```bash
+    $ cd ../..
+    $ cp -a homelab homelab-new
+    $ cd homelab-new/kube
+    ```
 
-2.Config `env.sh` for your new workers (keep controllers config as is)
+2. Config `env.sh` for your new workers (keep controllers config as is)
 
-3.Generate worker configurations and deploy to new workers
+3. Generate worker configurations and deploy to new workers
 
-```bash
-$ ./x-helper.sh gen_worker_all && ./x-helper.sh upload_worker_all
-$ ./x-helper.sh deploy_worker_all
-```
+    ```bash
+    $ ./x-helper.sh gen_worker_all && ./x-helper.sh upload_worker_all
+    $ ./x-helper.sh deploy_worker_all
+    ```
 
 ## Services
 
 ### Fundamental Services
 
-1.Install kube-dns (coredns)
+1. Install kube-dns (coredns)
 
-```bash
-$ kubectl create -f services/kube-coredns
-```
+    ```bash
+    $ kubectl create -f services/kube-coredns
+    ```
 
-2.Create certs for metrics-server and deploy metrics-server
+2. Create certs for metrics-server and deploy metrics-server
 
-```bash
-$ kubectl create secret generic \
-    -n kube-system metrics-server-secrets \
-    --from-file=ca=common/generated/ca-aggregator.pem \
-    --from-file=ms-key=common/generated/aggregator-proxy-client-key.pem \
-    --from-file=ms-cert=common/generated/aggregator-proxy-client.pem
-$ kubectl create -f services/metrics-server/deploy/1.8+
+    ```bash
+    $ kubectl create secret generic \
+        -n kube-system metrics-server-secrets \
+        --from-file=ca=common/generated/ca-aggregator.pem \
+        --from-file=ms-key=common/generated/aggregator-proxy-client-key.pem \
+        --from-file=ms-cert=common/generated/aggregator-proxy-client.pem
+    # to delete, run
+    # $ kubectl delete -n kube-system secrets metrics-server-secrets
 
-# In China, you can use aliyun google container mirror (configured, maybe not the latest)
-# $ kubectl create -f services/metrics-server-cn
-```
+    $ kubectl create -f services/metrics-server/deploy/1.8+
 
-3.Install kubernetes-dashboard (optional)
+    # In China, you can use aliyun google container mirror (configured, maybe not the latest)
+    # $ kubectl create -f services/metrics-server-cn
+    ```
 
-```bash
-$ kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
+3. Install kubernetes-dashboard (optional)
 
-# In China, you can use aliyun google container mirror
-# $ kubectl create -f services/kube-dashboard/kube-dashboard.cn.yaml
+    ```bash
+    $ kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml
 
-# (optional, not recommended if you are using public servers)
-# skip dashborad authentication (click `skip` on dashboard login page)
-# $ kubectl create -f services/kube-dashboard/dashoard-admin.yaml
-```
+    # In China, you can use aliyun google container mirror
+    # $ kubectl apply -f services/kube-dashboard/kube-dashboard.cn.yaml
+
+    # (optional, not recommended if you are using public servers)
+    # skip dashborad authentication (click `skip` on dashboard login page)
+    # $ kubectl apply -f services/kube-dashboard/dashoard-admin.yaml
+    ```
 
 ### Extra Services with `helm`
 
@@ -174,20 +177,20 @@ $ kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master
 
 #### Install `helm`
 
-1.Create and bind the tiller service account for `helm`
+1. Create and bind the tiller service account for `helm`
 
-```bash
-$ kubectl create -f services/helm/tiller-cluster-role.yaml
-```
+    ```bash
+    $ kubectl create -f services/helm/tiller-cluster-role.yaml
+    ```
 
-2.Init `helm` with tiller service account
+2. Init `helm` with tiller service account
 
-```bash
-$ helm init --service-account tiller --upgrade
+    ```bash
+    $ helm init --service-account tiller --upgrade
 
-# In China, you can use aliyun google container mirror to get tiller
-# $ helm init --service-account tiller --upgrade -i registry.cn-hangzhou.aliyuncs.com/google_containers/tiller:v2.11.0
-```
+    # In China, you can use aliyun google container mirror to get tiller
+    # $ helm init --service-account tiller --force-upgrade --upgrade -i registry.cn-hangzhou.aliyuncs.com/google_containers/tiller:v2.13.1
+    ```
 
 #### Monitoring Service
 
@@ -200,44 +203,44 @@ $ helm install --namespace monitoring --name prometheus stable/prometheus -f ser
 
 ##### Install `Grafana` via `helm`
 
-1.Install grafana to your kubernetes cluster
+1. Install grafana to your kubernetes cluster
 
-```bash
-# modify services/grafana/values.yaml if necessary
-$ helm install --namespace monitoring --name grafana stable/grafana -f services/grafana/values.yaml
-```
+    ```bash
+    # modify services/grafana/values.yaml if necessary
+    $ helm install --namespace monitoring --name grafana stable/grafana -f services/grafana/values.yaml
+    ```
 
-2.Access your grafana
+2. Access your grafana
 
-```bash
-$ export POD_NAME=$(kubectl get pods -n monitoring -l "app=grafana" -o jsonpath="{.items[0].metadata.name}")
-$ kubectl --namespace monitoring port-forward ${POD_NAME} 3000
+    ```bash
+    $ export POD_NAME=$(kubectl get pods -n monitoring -l "app=grafana" -o jsonpath="{.items[0].metadata.name}")
+    $ kubectl --namespace monitoring port-forward ${POD_NAME} 3000
 
-# get admin password (for admin user)
-$ kubectl --namespace monitoring get secret grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+    # get admin password (for admin user)
+    $ kubectl --namespace monitoring get secret grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 
-# open up your browser and navigate to http://localhost:3000
-```
+    # open up your browser and navigate to http://localhost:3000
+    ```
 
-3.Configure your dashboard
+3. Configure your `Grafana` dashboard
 
 ### GitLab
 
-1.Add `gitlab` helm chart repo and update
+1. Add `gitlab` helm chart repo and update
 
-```bash
-helm repo add gitlab https://charts.gitlab.io/ && helm repo update
-```
+    ```bash
+    helm repo add gitlab https://charts.gitlab.io/ && helm repo update
+    ```
 
-2.Install `gitlab` with helm ([see - all options](https://gitlab.com/charts/gitlab/blob/master/doc/installation/command-line-options.md))
+2. Install `gitlab` with helm ([see - all options](https://gitlab.com/charts/gitlab/blob/master/doc/installation/command-line-options.md))
 
-```bash
-helm upgrade --install gitlab gitlab/gitlab \
-  --timeout 600 \
-  --set global.hosts.domain= \
-  --set global.hosts.externalIP= \
-  --set certmanager-issuer.email=
-```
+    ```bash
+    helm upgrade --install gitlab gitlab/gitlab \
+    --timeout 600 \
+    --set global.hosts.domain= \
+    --set global.hosts.externalIP= \
+    --set certmanager-issuer.email=
+    ```
 
 #### GitLab Runner
 
