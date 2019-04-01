@@ -18,7 +18,7 @@ My Homelab (with Kubernetes inside)
 
 ### Network topology
 
-![topology](./art/network/topology.svg)
+<a href="https://drive.google.com/file/d/16R_tH-MYNgQWO3IrYg-sYvW5DbdIJNsb/view?usp=sharing"><img src="./art/network/topology.svg" width="500"></a>
 
 ### Prerequisite
 
